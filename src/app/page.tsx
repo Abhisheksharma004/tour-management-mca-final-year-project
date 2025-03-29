@@ -82,24 +82,23 @@ export default function Home() {
     <PageTransition>
       <div className="bg-gray-900 text-white">
         {/* Hero Section with Slider */}
-        <section className="relative h-screen">
+        <section className="relative h-[90vh]">
           {/* Slide Images */}
-          <div className="absolute inset-0 z-0">
+          <div className="absolute inset-0 w-full h-full">
             {slides.map((slide, index) => (
               <div 
                 key={slide.id}
-                className={`absolute inset-0 transition-opacity duration-1000 ${index === current ? 'opacity-100' : 'opacity-0'}`}
+                className={`absolute inset-0 w-full h-full transition-opacity duration-1000 ${index === current ? 'opacity-100' : 'opacity-0'}`}
               >
-                <Image
-                  src={slide.image}
-                  alt={slide.heading}
-                  fill
-                  style={{ objectFit: "cover" }}
-                  priority={index === 0}
-                  className="brightness-50"
-                  unoptimized
+                <Image 
+                  src={slide.image} 
+                  alt={slide.heading} 
+                  fill 
+                  priority
+                  className="object-cover brightness-[0.6]"
+                  sizes="100vw"
+                  quality={90}
                 />
-                <div className="absolute inset-0 hero-overlay"></div>
               </div>
             ))}
           </div>
@@ -217,14 +216,13 @@ export default function Home() {
             >
               {/* Guide Card 1 */}
               <motion.div className="bg-gray-900 rounded-lg overflow-hidden shadow-lg" variants={itemVariants}>
-                <div className="relative h-72">
+                <div className="relative h-48">
                   <Image 
                     src="https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=687&q=80" 
                     alt="Raj Mehta" 
                     fill
-                    style={{ objectFit: "cover" }}
-                    className="transition-transform hover:scale-105 duration-500"
-                    unoptimized
+                    sizes="(max-width: 768px) 100vw, 384px"
+                    className="transition-transform hover:scale-105 duration-500 object-cover"
                   />
                 </div>
                 <div className="p-6">
@@ -254,14 +252,13 @@ export default function Home() {
               
               {/* Guide Card 2 */}
               <motion.div className="bg-gray-900 rounded-lg overflow-hidden shadow-lg" variants={itemVariants}>
-                <div className="relative h-72">
+                <div className="relative h-48">
                   <Image 
                     src="https://images.unsplash.com/photo-1534751516642-a1af1ef26a56?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=689&q=80" 
                     alt="Kavita Singh" 
                     fill
-                    style={{ objectFit: "cover" }}
-                    className="transition-transform hover:scale-105 duration-500"
-                    unoptimized
+                    sizes="(max-width: 768px) 100vw, 384px"
+                    className="transition-transform hover:scale-105 duration-500 object-cover"
                   />
                 </div>
                 <div className="p-6">
@@ -291,14 +288,13 @@ export default function Home() {
               
               {/* Guide Card 3 */}
               <motion.div className="bg-gray-900 rounded-lg overflow-hidden shadow-lg" variants={itemVariants}>
-                <div className="relative h-72">
+                <div className="relative h-48">
                   <Image 
                     src="https://images.unsplash.com/photo-1500648767791-00dcc994a43e?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=687&q=80" 
                     alt="Rahul Verma" 
                     fill
-                    style={{ objectFit: "cover" }}
-                    className="transition-transform hover:scale-105 duration-500"
-                    unoptimized
+                    sizes="(max-width: 768px) 100vw, 384px"
+                    className="transition-transform hover:scale-105 duration-500 object-cover"
                   />
                 </div>
                 <div className="p-6">
@@ -379,14 +375,13 @@ export default function Home() {
                 className="rounded-xl overflow-hidden shadow-xl bg-gray-800 transform transition-all duration-300 hover:-translate-y-2 hover:shadow-2xl"
                 variants={itemVariants}
               >
-                <div className="relative h-72">
+                <div className="relative h-64">
                   <Image 
                     src="https://images.unsplash.com/photo-1599661046827-9d1be56d4043?auto=format&fit=crop&q=80&w=1470"
                     alt="City Palace, Jaipur" 
                     fill
-                    style={{ objectFit: "cover" }}
-                    className="transition-transform duration-700 hover:scale-110"
-                    unoptimized
+                    sizes="(max-width: 768px) 100vw, 384px"
+                    className="transition-transform duration-700 hover:scale-110 object-cover"
                   />
                   <div className="absolute inset-0 bg-gradient-to-t from-gray-900 via-gray-900/70 to-transparent"></div>
                   <div className="absolute bottom-0 left-0 right-0 p-6">
@@ -413,14 +408,13 @@ export default function Home() {
                 className="rounded-xl overflow-hidden shadow-xl bg-gray-800 transform transition-all duration-300 hover:-translate-y-2 hover:shadow-2xl"
                 variants={itemVariants}
               >
-                <div className="relative h-72">
+                <div className="relative h-64">
                   <Image 
                     src="https://images.unsplash.com/photo-1548013146-72479768bada?auto=format&fit=crop&q=80&w=1476" 
                     alt="Lake Palace, Udaipur" 
                     fill
-                    style={{ objectFit: "cover" }}
-                    className="transition-transform duration-700 hover:scale-110"
-                    unoptimized
+                    sizes="(max-width: 768px) 100vw, 384px"
+                    className="transition-transform duration-700 hover:scale-110 object-cover"
                   />
                   <div className="absolute inset-0 bg-gradient-to-t from-gray-900 via-gray-900/70 to-transparent"></div>
                   <div className="absolute bottom-0 left-0 right-0 p-6">
@@ -447,14 +441,13 @@ export default function Home() {
                 className="rounded-xl overflow-hidden shadow-xl bg-gray-800 transform transition-all duration-300 hover:-translate-y-2 hover:shadow-2xl"
                 variants={itemVariants}
               >
-                <div className="relative h-72">
+                <div className="relative h-64">
                   <Image 
                     src="https://images.unsplash.com/photo-1602536052359-ef94c19743c4?auto=format&fit=crop&q=80&w=1475" 
                     alt="Mysore Palace, Karnataka" 
                     fill
-                    style={{ objectFit: "cover" }}
-                    className="transition-transform duration-700 hover:scale-110"
-                    unoptimized
+                    sizes="(max-width: 768px) 100vw, 384px"
+                    className="transition-transform duration-700 hover:scale-110 object-cover"
                   />
                   <div className="absolute inset-0 bg-gradient-to-t from-gray-900 via-gray-900/70 to-transparent"></div>
                   <div className="absolute bottom-0 left-0 right-0 p-6">
@@ -481,14 +474,13 @@ export default function Home() {
                 className="rounded-xl overflow-hidden shadow-xl bg-gray-800 transform transition-all duration-300 hover:-translate-y-2 hover:shadow-2xl"
                 variants={itemVariants}
               >
-                <div className="relative h-72">
+                <div className="relative h-64">
                   <Image 
                     src="https://images.unsplash.com/photo-1564507592333-c60657eea523?auto=format&fit=crop&q=80&w=1471" 
                     alt="Taj Mahal, Agra" 
                     fill
-                    style={{ objectFit: "cover" }}
-                    className="transition-transform duration-700 hover:scale-110"
-                    unoptimized
+                    sizes="(max-width: 768px) 100vw, 384px"
+                    className="transition-transform duration-700 hover:scale-110 object-cover"
                   />
                   <div className="absolute inset-0 bg-gradient-to-t from-gray-900 via-gray-900/70 to-transparent"></div>
                   <div className="absolute bottom-0 left-0 right-0 p-6">
@@ -515,14 +507,13 @@ export default function Home() {
                 className="rounded-xl overflow-hidden shadow-xl bg-gray-800 transform transition-all duration-300 hover:-translate-y-2 hover:shadow-2xl"
                 variants={itemVariants}
               >
-                <div className="relative h-72">
+                <div className="relative h-64">
                   <Image 
                     src="https://images.unsplash.com/photo-1511543462076-90896abd383d?auto=format&fit=crop&q=80&w=1471" 
                     alt="Varanasi Ghats" 
                     fill
-                    style={{ objectFit: "cover" }}
-                    className="transition-transform duration-700 hover:scale-110"
-                    unoptimized
+                    sizes="(max-width: 768px) 100vw, 384px"
+                    className="transition-transform duration-700 hover:scale-110 object-cover"
                   />
                   <div className="absolute inset-0 bg-gradient-to-t from-gray-900 via-gray-900/70 to-transparent"></div>
                   <div className="absolute bottom-0 left-0 right-0 p-6">
@@ -549,14 +540,13 @@ export default function Home() {
                 className="rounded-xl overflow-hidden shadow-xl bg-gray-800 transform transition-all duration-300 hover:-translate-y-2 hover:shadow-2xl"
                 variants={itemVariants}
               >
-                <div className="relative h-72">
+                <div className="relative h-64">
                   <Image 
                     src="https://images.unsplash.com/photo-1599661046288-89b8be1a53a3?auto=format&fit=crop&q=80&w=1470" 
                     alt="Hawa Mahal, Jaipur" 
                     fill
-                    style={{ objectFit: "cover" }}
-                    className="transition-transform duration-700 hover:scale-110"
-                    unoptimized
+                    sizes="(max-width: 768px) 100vw, 384px"
+                    className="transition-transform duration-700 hover:scale-110 object-cover"
                   />
                   <div className="absolute inset-0 bg-gradient-to-t from-gray-900 via-gray-900/70 to-transparent"></div>
                   <div className="absolute bottom-0 left-0 right-0 p-6">
@@ -583,14 +573,13 @@ export default function Home() {
                 className="rounded-xl overflow-hidden shadow-xl bg-gray-800 transform transition-all duration-300 hover:-translate-y-2 hover:shadow-2xl"
                 variants={itemVariants}
               >
-                <div className="relative h-72">
+                <div className="relative h-64">
                   <Image 
                     src="https://images.unsplash.com/photo-1587474260584-136574528ed5?auto=format&fit=crop&q=80&w=1470" 
                     alt="Red Fort, Delhi" 
                     fill
-                    style={{ objectFit: "cover" }}
-                    className="transition-transform duration-700 hover:scale-110"
-                    unoptimized
+                    sizes="(max-width: 768px) 100vw, 384px"
+                    className="transition-transform duration-700 hover:scale-110 object-cover"
                   />
                   <div className="absolute inset-0 bg-gradient-to-t from-gray-900 via-gray-900/70 to-transparent"></div>
                   <div className="absolute bottom-0 left-0 right-0 p-6">
@@ -617,14 +606,13 @@ export default function Home() {
                 className="rounded-xl overflow-hidden shadow-xl bg-gray-800 transform transition-all duration-300 hover:-translate-y-2 hover:shadow-2xl"
                 variants={itemVariants}
               >
-                <div className="relative h-72">
+                <div className="relative h-64">
                   <Image 
                     src="https://images.unsplash.com/photo-1609340440248-f5a410415cf1?auto=format&fit=crop&q=80&w=1470" 
                     alt="Kerala Backwaters" 
                     fill
-                    style={{ objectFit: "cover" }}
-                    className="transition-transform duration-700 hover:scale-110"
-                    unoptimized
+                    sizes="(max-width: 768px) 100vw, 384px"
+                    className="transition-transform duration-700 hover:scale-110 object-cover"
                   />
                   <div className="absolute inset-0 bg-gradient-to-t from-gray-900 via-gray-900/70 to-transparent"></div>
                   <div className="absolute bottom-0 left-0 right-0 p-6">
@@ -708,7 +696,6 @@ export default function Home() {
                       width={56} 
                       height={56} 
                       className="rounded-full"
-                      unoptimized
                     />
                   </div>
                   <div>
@@ -738,7 +725,6 @@ export default function Home() {
                       width={56} 
                       height={56} 
                       className="rounded-full"
-                      unoptimized
                     />
                   </div>
                   <div>
@@ -768,7 +754,6 @@ export default function Home() {
                       width={56} 
                       height={56} 
                       className="rounded-full"
-                      unoptimized
                     />
                   </div>
                   <div>
@@ -796,14 +781,15 @@ export default function Home() {
           viewport={{ once: true, margin: "-100px" }}
         >
           <div className="absolute inset-0 z-0">
-            <Image
-              src="https://images.unsplash.com/photo-1518623566760-a1b6bc9fdbd8?auto=format&fit=crop&q=80&w=1470"
-              alt="Travel scene"
-              fill
-              style={{ objectFit: "cover" }}
-              className="brightness-25"
-              unoptimized
-            />
+            <div className="relative w-full h-80">
+              <Image 
+                src="/images/cta-bg.jpg" 
+                alt="Join Our Community" 
+                fill 
+                sizes="100vw"
+                className="brightness-25 object-cover"
+              />
+            </div>
           </div>
           <div className="absolute inset-0 bg-gray-900 opacity-80"></div>
           

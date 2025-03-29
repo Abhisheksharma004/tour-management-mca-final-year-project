@@ -6,9 +6,10 @@ import Image from 'next/image';
 import { usePathname } from 'next/navigation';
 import { 
   FaHome, FaUserFriends, FaMapMarkedAlt, FaCalendarAlt, 
-  FaChartBar, FaCog, FaSignOutAlt, FaBars, FaTimes,
-  FaUsers, FaComments, FaBell
+  FaChartBar, FaRegStar, FaCommentDots, FaCog, FaSignOutAlt, FaBars, FaTimes,
+  FaUsers, FaComments, FaBell, FaUserCircle
 } from 'react-icons/fa';
+import ProfileModal from '@/components/admin/ProfileModal';
 
 interface AdminLayoutProps {
   children: ReactNode;
@@ -16,6 +17,7 @@ interface AdminLayoutProps {
 
 export default function AdminLayout({ children }: AdminLayoutProps) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [profileModalOpen, setProfileModalOpen] = useState(false);
   const pathname = usePathname();
 
   const navLinks = [
@@ -25,11 +27,14 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
     { name: 'Bookings', href: '/admin/bookings', icon: FaCalendarAlt },
     { name: 'Users', href: '/admin/users', icon: FaUsers },
     { name: 'Analytics', href: '/admin/analytics', icon: FaChartBar },
-    { name: 'Reviews', href: '/admin/reviews', icon: FaComments },
+    { name: 'Reviews', href: '/admin/reviews', icon: FaRegStar },
+    { name: 'Customer Support', href: '/admin/customer-support', icon: FaCommentDots },
     { name: 'Settings', href: '/admin/settings', icon: FaCog },
   ];
 
   const toggleSidebar = () => setSidebarOpen(!sidebarOpen);
+  const openProfileModal = () => setProfileModalOpen(true);
+  const closeProfileModal = () => setProfileModalOpen(false);
 
   return (
     <div className="flex h-screen bg-gray-900">
@@ -53,7 +58,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
           </button>
         </div>
 
-        <div className="px-4 py-6">
+        <div className="flex flex-col h-[calc(100%-70px)] px-4 py-6">
           <div className="flex items-center space-x-3 mb-6">
             <div className="relative w-10 h-10 rounded-full overflow-hidden border-2 border-orange-500">
               <Image 
@@ -71,33 +76,33 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
             </div>
           </div>
           
-          <nav className="space-y-1">
+          <nav className="space-y-1 flex-1 overflow-y-auto">
             {navLinks.map((link) => (
               <Link
                 key={link.name}
                 href={link.href}
                 className={`flex items-center px-4 py-3 text-sm rounded-md transition-colors ${pathname === link.href ? 'bg-orange-600 text-white' : 'text-gray-300 hover:bg-gray-700 hover:text-white'}`}
               >
-                <link.icon className="mr-3 text-lg" />
+                <link.icon className="mr-3 h-5 w-5" />
                 {link.name}
               </Link>
             ))}
           </nav>
           
-          <div className="mt-10 pt-6 border-t border-gray-700">
+          <div className="mt-auto pt-6 border-t border-gray-700">
             <Link
               href="/"
-              className="flex items-center px-4 py-3 text-sm text-gray-300 rounded-md hover:bg-gray-700 transition-colors mb-2"
+              className="flex items-center px-4 py-3 text-sm text-gray-300 rounded-md hover:bg-gray-700 hover:text-white transition-colors mb-2"
             >
-              <FaHome className="mr-3 text-lg" />
-              View Website
+              <FaHome className="mr-3 h-5 w-5" />
+              <span>View Website</span>
             </Link>
             <Link
               href="/admin/logout"
-              className="flex items-center px-4 py-3 text-sm text-gray-300 rounded-md hover:bg-gray-700 transition-colors"
+              className="flex items-center px-4 py-3 text-sm text-gray-300 rounded-md hover:bg-gray-700 hover:text-white transition-colors"
             >
-              <FaSignOutAlt className="mr-3 text-lg" />
-              Sign Out
+              <FaSignOutAlt className="mr-3 h-5 w-5" />
+              <span>Sign Out</span>
             </Link>
           </div>
         </div>
@@ -123,9 +128,17 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
                 </span>
               </button>
               <span className="text-gray-400">|</span>
-              <div className="text-sm text-gray-300">
-                Welcome, <span className="font-semibold text-white">Admin</span>
-              </div>
+              <button 
+                className="flex items-center text-gray-300 hover:text-white transition-colors group"
+                onClick={openProfileModal}
+              >
+                <div className="flex items-center">
+                  <FaUserCircle className="w-5 h-5 mr-2" />
+                  <div className="text-sm">
+                    Welcome, <span className="font-semibold text-white group-hover:text-orange-400 transition-colors">Admin</span>
+                  </div>
+                </div>
+              </button>
             </div>
           </div>
         </header>
@@ -135,6 +148,9 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
           {children}
         </main>
       </div>
+
+      {/* Profile Modal */}
+      <ProfileModal isOpen={profileModalOpen} onClose={closeProfileModal} />
     </div>
   );
 } 

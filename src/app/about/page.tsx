@@ -12,10 +12,10 @@ export default function AboutPage() {
           <Image 
             src="https://images.unsplash.com/photo-1522202176988-66273c2fd55f?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1471&q=80" 
             alt="People traveling together"
-            layout="fill"
-            objectFit="cover"
+            fill
             className="opacity-20"
-            unoptimized
+            sizes="(max-width: 768px) 100vw, 33vw"
+            loading="lazy"
           />
         </div>
         <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-24 md:py-32">
@@ -42,9 +42,10 @@ export default function AboutPage() {
               <Image 
                 src="https://images.unsplash.com/photo-1504384308090-c894fdcc538d?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1470&q=80" 
                 alt="Our founding team"
-                layout="fill"
-                objectFit="cover"
-                unoptimized
+                fill
+                className="object-cover"
+                sizes="(max-width: 768px) 100vw, 33vw"
+                loading="lazy"
               />
             </div>
           </div>
@@ -130,9 +131,10 @@ export default function AboutPage() {
               <Image 
                 src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=687&q=80" 
                 alt="Alex Chen, Co-founder & CEO"
-                layout="fill"
-                objectFit="cover"
-                unoptimized
+                fill
+                className="object-cover"
+                sizes="(max-width: 768px) 100vw, 33vw"
+                loading="lazy"
               />
             </div>
             <h3 className="text-xl font-bold">Alex Chen</h3>
@@ -147,9 +149,10 @@ export default function AboutPage() {
               <Image 
                 src="https://images.unsplash.com/photo-1494790108377-be9c29b29330?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=687&q=80" 
                 alt="Maya Rodriguez, Co-founder & COO"
-                layout="fill"
-                objectFit="cover"
-                unoptimized
+                fill
+                className="object-cover"
+                sizes="(max-width: 768px) 100vw, 33vw"
+                loading="lazy"
               />
             </div>
             <h3 className="text-xl font-bold">Maya Rodriguez</h3>
@@ -164,9 +167,10 @@ export default function AboutPage() {
               <Image 
                 src="https://images.unsplash.com/photo-1500648767791-00dcc994a43e?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=687&q=80" 
                 alt="David Kim, CTO"
-                layout="fill"
-                objectFit="cover"
-                unoptimized
+                fill
+                className="object-cover"
+                sizes="(max-width: 768px) 100vw, 33vw"
+                loading="lazy"
               />
             </div>
             <h3 className="text-xl font-bold">David Kim</h3>
@@ -181,9 +185,10 @@ export default function AboutPage() {
               <Image 
                 src="https://images.unsplash.com/photo-1573497019940-1c28c88b4f3e?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=687&q=80" 
                 alt="Priya Patel, Head of Guide Relations"
-                layout="fill"
-                objectFit="cover"
-                unoptimized
+                fill
+                className="object-cover"
+                sizes="(max-width: 768px) 100vw, 33vw"
+                loading="lazy"
               />
             </div>
             <h3 className="text-xl font-bold">Priya Patel</h3>

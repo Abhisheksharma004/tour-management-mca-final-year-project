@@ -208,22 +208,22 @@ export default function GuideDashboard() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
         <div className="lg:col-span-2">
           <div className="bg-gray-800 rounded-lg border border-gray-700 shadow-lg overflow-hidden">
-            <div className="flex border-b border-gray-700">
+            <div className="flex flex-wrap border-b border-gray-700">
               <button 
                 onClick={() => setActiveTab('upcoming')}
-                className={`flex-1 py-3 text-center text-sm font-medium ${activeTab === 'upcoming' ? 'text-orange-500 border-b-2 border-orange-500' : 'text-gray-400 hover:text-white'}`}
+                className={`flex-1 min-w-[120px] py-3 text-center text-sm font-medium ${activeTab === 'upcoming' ? 'text-orange-500 border-b-2 border-orange-500' : 'text-gray-400 hover:text-white'}`}
               >
                 Upcoming Tours
               </button>
               <button 
                 onClick={() => setActiveTab('bookings')}
-                className={`flex-1 py-3 text-center text-sm font-medium ${activeTab === 'bookings' ? 'text-orange-500 border-b-2 border-orange-500' : 'text-gray-400 hover:text-white'}`}
+                className={`flex-1 min-w-[120px] py-3 text-center text-sm font-medium ${activeTab === 'bookings' ? 'text-orange-500 border-b-2 border-orange-500' : 'text-gray-400 hover:text-white'}`}
               >
                 Recent Bookings
               </button>
               <button 
                 onClick={() => setActiveTab('messages')}
-                className={`flex-1 py-3 text-center text-sm font-medium ${activeTab === 'messages' ? 'text-orange-500 border-b-2 border-orange-500' : 'text-gray-400 hover:text-white'}`}
+                className={`flex-1 min-w-[120px] py-3 text-center text-sm font-medium ${activeTab === 'messages' ? 'text-orange-500 border-b-2 border-orange-500' : 'text-gray-400 hover:text-white'}`}
               >
                 Unread Messages
               </button>
@@ -234,40 +234,40 @@ export default function GuideDashboard() {
                 <div>
                   {upcomingTours.map((tour) => (
                     <div key={tour.id} className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-3 mb-3 bg-gray-700/50 rounded-lg hover:bg-gray-700 transition">
-                      <div className="flex items-center mb-2 sm:mb-0 w-full sm:w-auto">
-                        <div className="relative w-10 h-10 rounded-lg overflow-hidden mr-3 border border-gray-600">
+                      <div className="flex items-center mb-3 sm:mb-0 w-full sm:w-auto">
+                        <div className="relative w-10 h-10 rounded-lg overflow-hidden mr-3 border border-gray-600 flex-shrink-0">
                           <Image 
                             src={tour.customer.image} 
                             alt={tour.customer.name} 
                             fill 
                             sizes="40px"
-                            style={{ objectFit: "cover" }}
-                            unoptimized
+                            className="object-cover"
+                            priority
                           />
                         </div>
-                        <div>
-                          <h3 className="font-medium text-white">{tour.name}</h3>
+                        <div className="min-w-0">
+                          <h3 className="font-medium text-white truncate">{tour.name}</h3>
                           <div className="flex items-center text-xs text-gray-400">
-                            <FaMapMarkerAlt className="mr-1" size={10} />
-                            {tour.location}
+                            <FaMapMarkerAlt className="mr-1 flex-shrink-0" size={10} />
+                            <span className="truncate">{tour.location}</span>
                           </div>
                         </div>
                       </div>
-                      <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto justify-between sm:justify-end">
+                      <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
                         <div className="text-xs text-gray-400 flex items-center mr-3">
-                          <FaCalendarAlt className="mr-1" size={10} />
+                          <FaCalendarAlt className="mr-1 flex-shrink-0" size={10} />
                           <DateDisplay date={tour.date} className="text-xs" />
                         </div>
                         <div className="text-xs text-gray-400 flex items-center mr-3">
-                          <FaClock className="mr-1" size={10} />
+                          <FaClock className="mr-1 flex-shrink-0" size={10} />
                           {tour.time}
                         </div>
                         <div className="text-xs text-gray-400 flex items-center mr-3">
-                          <FaUsers className="mr-1" size={10} />
+                          <FaUsers className="mr-1 flex-shrink-0" size={10} />
                           {tour.participants} people
                         </div>
                         <Link href={`/guide-dashboard/tours/${tour.id}`} className="text-xs bg-gray-700 text-orange-400 hover:bg-gray-600 rounded-md px-2 py-1 flex items-center">
-                          <FaEye className="mr-1" size={10} />
+                          <FaEye className="mr-1 flex-shrink-0" size={10} />
                           View
                         </Link>
                       </div>
@@ -283,14 +283,14 @@ export default function GuideDashboard() {
                 <div>
                   {recentBookings.map((booking) => (
                     <div key={booking.id} className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-3 mb-3 bg-gray-700/50 rounded-lg hover:bg-gray-700 transition">
-                      <div>
-                        <h3 className="font-medium text-white">{booking.tourName}</h3>
+                      <div className="mb-3 sm:mb-0 w-full sm:w-auto">
+                        <h3 className="font-medium text-white truncate">{booking.tourName}</h3>
                         <div className="flex items-center text-xs text-gray-400">
                           <span className="mr-2">#{booking.id}</span> • 
-                          <span className="ml-2">{booking.customer} ({booking.participants} people)</span>
+                          <span className="ml-2 truncate">{booking.customer} ({booking.participants} people)</span>
                         </div>
                       </div>
-                      <div className="flex items-center mt-2 sm:mt-0">
+                      <div className="flex items-center w-full sm:w-auto justify-between sm:justify-end">
                         <div className="mr-3 text-right">
                           <div className="text-white font-medium">₹{booking.amount.toLocaleString()}</div>
                           <div className="text-xs text-gray-400">
@@ -316,22 +316,22 @@ export default function GuideDashboard() {
                 <div>
                   {unreadMessages.map((message) => (
                     <div key={message.id} className="flex items-start p-3 mb-3 bg-gray-700/50 rounded-lg hover:bg-gray-700 transition">
-                      <div className="relative w-10 h-10 rounded-full overflow-hidden mr-3 border border-gray-600">
+                      <div className="relative w-10 h-10 rounded-full overflow-hidden mr-3 border border-gray-600 flex-shrink-0">
                         <Image 
                           src={message.avatar} 
                           alt={message.from} 
                           fill 
                           sizes="40px"
-                          style={{ objectFit: "cover" }}
-                          unoptimized
+                          className="object-cover"
+                          priority
                         />
                       </div>
-                      <div className="flex-1">
-                        <div className="flex justify-between">
-                          <h3 className="font-medium text-white">{message.from}</h3>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex justify-between flex-wrap">
+                          <h3 className="font-medium text-white truncate mr-2">{message.from}</h3>
                           <span className="text-xs text-gray-400">{message.time}</span>
                         </div>
-                        <p className="text-sm text-gray-300 mt-1">{message.message}</p>
+                        <p className="text-sm text-gray-300 mt-1 break-words">{message.message}</p>
                       </div>
                     </div>
                   ))}

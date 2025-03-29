@@ -3,8 +3,9 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { FaSearch, FaFilter, FaStar, FaEdit, FaTrash, FaEye, FaPlus } from 'react-icons/fa';
+import { FaSearch, FaFilter, FaStar, FaEdit, FaTrash, FaEye, FaPlus, FaEllipsisH, FaCheck, FaTimes } from 'react-icons/fa';
 import DateDisplay from '@/components/DateDisplay';
+import GuideProfileModal from '@/components/admin/GuideProfileModal';
 
 // Mock data for guides
 const guidesData = [
@@ -85,6 +86,8 @@ const guidesData = [
 export default function GuidesManagement() {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('All');
+  const [selectedGuide, setSelectedGuide] = useState<any>(null);
+  const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
   
   // Filter guides based on search term and status
   const filteredGuides = guidesData.filter(guide => {
@@ -99,6 +102,15 @@ export default function GuidesManagement() {
     
     return matchesSearch && matchesStatus;
   });
+
+  const openGuideProfile = (guide: any) => {
+    setSelectedGuide(guide);
+    setIsProfileModalOpen(true);
+  };
+  
+  const closeGuideProfile = () => {
+    setIsProfileModalOpen(false);
+  };
 
   return (
     <div>
@@ -233,6 +245,7 @@ export default function GuidesManagement() {
                       <button 
                         className="p-1 text-blue-400 hover:text-blue-300 transition-colors"
                         title="View Guide"
+                        onClick={() => openGuideProfile(guide)}
                       >
                         <FaEye />
                       </button>
@@ -274,6 +287,13 @@ export default function GuidesManagement() {
           </div>
         </div>
       </div>
+      
+      {/* Guide Profile Modal */}
+      <GuideProfileModal 
+        isOpen={isProfileModalOpen} 
+        onClose={closeGuideProfile} 
+        guide={selectedGuide}
+      />
     </div>
   );
 } 

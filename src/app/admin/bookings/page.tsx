@@ -456,9 +456,9 @@ export default function BookingsManagement() {
                           src={booking.customer.image} 
                           alt={booking.customer.name} 
                           fill 
-                          sizes="32px"
-                          style={{ objectFit: "cover" }}
-                          unoptimized
+                          className="object-cover"
+                          sizes="(max-width: 768px) 100vw, 50px"
+                          priority
                         />
                       </div>
                       <div>
@@ -474,9 +474,9 @@ export default function BookingsManagement() {
                           src={booking.guide.image} 
                           alt={booking.guide.name} 
                           fill 
-                          sizes="32px"
-                          style={{ objectFit: "cover" }}
-                          unoptimized
+                          className="object-cover"
+                          sizes="(max-width: 768px) 100vw, 50px"
+                          priority
                         />
                       </div>
                       <span className="text-gray-200">{booking.guide.name}</span>
