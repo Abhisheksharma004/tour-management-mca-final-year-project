@@ -5,11 +5,13 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
 
-export default function LoginPage() {
+export default function RegisterPage() {
   const router = useRouter();
   const [formData, setFormData] = useState({
+    name: '',
     email: '',
     password: '',
+    confirmPassword: '',
   });
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
@@ -24,21 +26,32 @@ export default function LoginPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
+
+    // Validate passwords match
+    if (formData.password !== formData.confirmPassword) {
+      setError('Passwords do not match');
+      return;
+    }
+
     setLoading(true);
 
     try {
-      const response = await fetch('/api/auth/login', {
+      const response = await fetch('/api/auth/register', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(formData),
+        body: JSON.stringify({
+          name: formData.name,
+          email: formData.email,
+          password: formData.password,
+        }),
       });
 
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.error || 'Failed to login');
+        throw new Error(data.error || 'Failed to register');
       }
 
       // Store token in localStorage
@@ -50,14 +63,10 @@ export default function LoginPage() {
         role: data.role,
       }));
 
-      // Redirect based on role
-      if (data.role === 'traveler') {
-        router.push('/traveler/dashboard');
-      } else if (data.role === 'admin') {
-        router.push('/admin/dashboard');
-      }
+      // Redirect to traveler dashboard
+      router.push('/traveler/dashboard');
     } catch (error) {
-      setError(error instanceof Error ? error.message : 'Failed to login');
+      setError(error instanceof Error ? error.message : 'Failed to register');
     } finally {
       setLoading(false);
     }
@@ -76,15 +85,15 @@ export default function LoginPage() {
           />
         </div>
         <h2 className="mt-6 text-center text-3xl font-extrabold text-white">
-          Sign in to your account
+          Create your account
         </h2>
         <p className="mt-2 text-center text-sm text-gray-400">
-          Or{' '}
+          Already have an account?{' '}
           <Link
-            href="/register"
+            href="/login"
             className="font-medium text-orange-500 hover:text-orange-400"
           >
-            create a new account
+            Sign in
           </Link>
         </p>
       </div>
@@ -97,7 +106,28 @@ export default function LoginPage() {
                 {error}
               </div>
             )}
-            
+
+            <div>
+              <label
+                htmlFor="name"
+                className="block text-sm font-medium text-gray-300"
+              >
+                Full name
+              </label>
+              <div className="mt-1">
+                <input
+                  id="name"
+                  name="name"
+                  type="text"
+                  autoComplete="name"
+                  required
+                  value={formData.name}
+                  onChange={handleChange}
+                  className="appearance-none block w-full px-3 py-2 border border-gray-700 rounded-md shadow-sm placeholder-gray-500 bg-gray-700 text-white focus:outline-none focus:ring-orange-500 focus:border-orange-500 sm:text-sm"
+                />
+              </div>
+            </div>
+
             <div>
               <label
                 htmlFor="email"
@@ -131,7 +161,7 @@ export default function LoginPage() {
                   id="password"
                   name="password"
                   type="password"
-                  autoComplete="current-password"
+                  autoComplete="new-password"
                   required
                   value={formData.password}
                   onChange={handleChange}
@@ -140,29 +170,24 @@ export default function LoginPage() {
               </div>
             </div>
 
-            <div className="flex items-center justify-between">
-              <div className="flex items-center">
+            <div>
+              <label
+                htmlFor="confirmPassword"
+                className="block text-sm font-medium text-gray-300"
+              >
+                Confirm password
+              </label>
+              <div className="mt-1">
                 <input
-                  id="remember-me"
-                  name="remember-me"
-                  type="checkbox"
-                  className="h-4 w-4 text-orange-500 focus:ring-orange-500 border-gray-700 rounded bg-gray-700"
+                  id="confirmPassword"
+                  name="confirmPassword"
+                  type="password"
+                  autoComplete="new-password"
+                  required
+                  value={formData.confirmPassword}
+                  onChange={handleChange}
+                  className="appearance-none block w-full px-3 py-2 border border-gray-700 rounded-md shadow-sm placeholder-gray-500 bg-gray-700 text-white focus:outline-none focus:ring-orange-500 focus:border-orange-500 sm:text-sm"
                 />
-                <label
-                  htmlFor="remember-me"
-                  className="ml-2 block text-sm text-gray-300"
-                >
-                  Remember me
-                </label>
-              </div>
-
-              <div className="text-sm">
-                <Link
-                  href="/forgot-password"
-                  className="font-medium text-orange-500 hover:text-orange-400"
-                >
-                  Forgot your password?
-                </Link>
               </div>
             </div>
 
@@ -172,7 +197,7 @@ export default function LoginPage() {
                 disabled={loading}
                 className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-orange-600 hover:bg-orange-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-orange-500 disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                {loading ? 'Signing in...' : 'Sign in'}
+                {loading ? 'Creating account...' : 'Create account'}
               </button>
             </div>
           </form>
