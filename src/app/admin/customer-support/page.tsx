@@ -10,6 +10,7 @@ import {
   UserGroupIcon,
   ChartBarIcon,
 } from '@heroicons/react/24/outline';
+import DateDisplay from '@/components/DateDisplay';
 
 // Sample data - Replace with actual data from your backend
 const supportTickets = [
@@ -283,7 +284,7 @@ export default function CustomerSupportDashboard() {
                       </span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-400">
-                      {new Date(ticket.lastUpdated).toLocaleDateString()}
+                      <DateDisplay date={ticket.lastUpdated} />
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                       <button

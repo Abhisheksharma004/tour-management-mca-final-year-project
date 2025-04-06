@@ -14,7 +14,9 @@ export default function RegisterPage() {
     confirmPassword: '',
   });
   const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
   const [loading, setLoading] = useState(false);
+  const [debug, setDebug] = useState('');
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData({
@@ -26,6 +28,8 @@ export default function RegisterPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
+    setSuccess('');
+    setDebug('');
 
     // Validate passwords match
     if (formData.password !== formData.confirmPassword) {
@@ -36,7 +40,9 @@ export default function RegisterPage() {
     setLoading(true);
 
     try {
-      const response = await fetch('/api/auth/register', {
+      setDebug('Sending registration request to direct-register endpoint...');
+      
+      const response = await fetch('/api/auth/direct-register', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -48,25 +54,28 @@ export default function RegisterPage() {
         }),
       });
 
+      setDebug(prev => `${prev}\nResponse status: ${response.status}`);
       const data = await response.json();
+      setDebug(prev => `${prev}\nReceived response: ${JSON.stringify(data, null, 2)}`);
 
       if (!response.ok) {
         throw new Error(data.error || 'Failed to register');
       }
 
+      setSuccess('Registration successful! Redirecting to dashboard...');
+
       // Store token in localStorage
       localStorage.setItem('token', data.token);
-      localStorage.setItem('user', JSON.stringify({
-        _id: data._id,
-        name: data.name,
-        email: data.email,
-        role: data.role,
-      }));
+      localStorage.setItem('user', JSON.stringify(data.user));
 
-      // Redirect to traveler dashboard
-      router.push('/traveler/dashboard');
+      // Redirect to traveler dashboard after a short delay
+      setTimeout(() => {
+        router.push('/traveler/dashboard');
+      }, 1500);
     } catch (error) {
+      console.error('Registration error:', error);
       setError(error instanceof Error ? error.message : 'Failed to register');
+      setDebug(prev => `${prev}\nError: ${error instanceof Error ? error.message : JSON.stringify(error)}`);
     } finally {
       setLoading(false);
     }
@@ -104,6 +113,12 @@ export default function RegisterPage() {
             {error && (
               <div className="bg-red-500 text-white p-3 rounded-md text-sm">
                 {error}
+              </div>
+            )}
+
+            {success && (
+              <div className="bg-green-500 text-white p-3 rounded-md text-sm">
+                {success}
               </div>
             )}
 
@@ -168,6 +183,9 @@ export default function RegisterPage() {
                   className="appearance-none block w-full px-3 py-2 border border-gray-700 rounded-md shadow-sm placeholder-gray-500 bg-gray-700 text-white focus:outline-none focus:ring-orange-500 focus:border-orange-500 sm:text-sm"
                 />
               </div>
+              <p className="mt-1 text-xs text-gray-400">
+                Password must be at least 8 characters.
+              </p>
             </div>
 
             <div>
@@ -201,6 +219,16 @@ export default function RegisterPage() {
               </button>
             </div>
           </form>
+
+          {/* Debug panel - available in all environments for troubleshooting */}
+          {debug && (
+            <div className="mt-6 p-3 border border-gray-700 rounded-md bg-gray-900">
+              <h3 className="text-sm font-medium text-gray-300 mb-2">Debug Info:</h3>
+              <pre className="text-xs text-gray-400 whitespace-pre-wrap break-words">
+                {debug}
+              </pre>
+            </div>
+          )}
         </div>
       </div>
     </div>

@@ -1,11 +1,11 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { formatDate, formatDateTime } from '@/utils/dateFormatters';
+import { formatDateForDisplay } from './common/DateUtils';
 
 type DateDisplayProps = {
   date: string;
-  format?: 'date' | 'datetime';
+  format?: 'date' | 'datetime' | 'time';
   fallback?: string;
   className?: string;
 };
@@ -26,21 +26,22 @@ export default function DateDisplay({
   useEffect(() => {
     setIsClient(true);
     try {
-      if (format === 'date') {
-        setFormattedDate(formatDate(date));
-      } else {
-        setFormattedDate(formatDateTime(date));
-      }
+      const formatted = formatDateForDisplay(date, format);
+      setFormattedDate(formatted);
     } catch (error) {
       console.error('Error formatting date:', error);
       setFormattedDate(fallback || date);
     }
   }, [date, format, fallback]);
 
-  // During server-side rendering, return a placeholder or the original date string
+  // During server-side rendering, return a placeholder with formatDateForDisplay
   // This ensures consistent rendering between server and client
   if (!isClient) {
-    return <span suppressHydrationWarning className={className}>{fallback || date}</span>;
+    return (
+      <span suppressHydrationWarning className={className}>
+        {formatDateForDisplay(date, format)}
+      </span>
+    );
   }
 
   return (

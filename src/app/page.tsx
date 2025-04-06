@@ -90,11 +90,11 @@ export default function Home() {
                 key={slide.id}
                 className={`absolute inset-0 w-full h-full transition-opacity duration-1000 ${index === current ? 'opacity-100' : 'opacity-0'}`}
               >
-                <Image 
+        <Image
                   src={slide.image} 
                   alt={slide.heading} 
                   fill 
-                  priority
+          priority
                   className="object-cover brightness-[0.6]"
                   sizes="100vw"
                   quality={90}
@@ -289,7 +289,7 @@ export default function Home() {
               {/* Guide Card 3 */}
               <motion.div className="bg-gray-900 rounded-lg overflow-hidden shadow-lg" variants={itemVariants}>
                 <div className="relative h-48">
-                  <Image 
+            <Image
                     src="https://images.unsplash.com/photo-1500648767791-00dcc994a43e?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=687&q=80" 
                     alt="Rahul Verma" 
                     fill
@@ -340,7 +340,7 @@ export default function Home() {
                 </motion.div>
               </TransitionLink>
             </motion.div>
-          </div>
+        </div>
         </motion.section>
         
         {/* Popular Destinations Section */}
@@ -607,7 +607,7 @@ export default function Home() {
                 variants={itemVariants}
               >
                 <div className="relative h-64">
-                  <Image 
+          <Image
                     src="https://images.unsplash.com/photo-1609340440248-f5a410415cf1?auto=format&fit=crop&q=80&w=1470" 
                     alt="Kerala Backwaters" 
                     fill
@@ -748,7 +748,7 @@ export default function Home() {
               >
                 <div className="flex items-center mb-4">
                   <div className="mr-4">
-                    <Image 
+          <Image
                       src="https://randomuser.me/api/portraits/women/68.jpg" 
                       alt="Emma Wilson" 
                       width={56} 
@@ -782,7 +782,7 @@ export default function Home() {
         >
           <div className="absolute inset-0 z-0">
             <div className="relative w-full h-80">
-              <Image 
+          <Image
                 src="/images/cta-bg.jpg" 
                 alt="Join Our Community" 
                 fill 
@@ -824,7 +824,7 @@ export default function Home() {
             </motion.div>
           </div>
         </motion.section>
-      </div>
+    </div>
     </PageTransition>
   );
 }

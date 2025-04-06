@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
+import DateDisplay from '@/components/DateDisplay';
 
 export default function Booking() {
   const searchParams = useSearchParams();
@@ -168,7 +169,7 @@ export default function Booking() {
                   <div className="border-t border-gray-700 pt-4 mb-4">
                     <div className="flex justify-between mb-1">
                       <span className="text-gray-300">Date:</span>
-                      <span>{new Date(tour.date).toLocaleDateString()}</span>
+                      <span><DateDisplay date={tour.date} /></span>
                     </div>
                     <div className="flex justify-between mb-1">
                       <span className="text-gray-300">Time:</span>

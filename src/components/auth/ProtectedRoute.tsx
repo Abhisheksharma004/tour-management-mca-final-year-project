@@ -2,10 +2,17 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { jwtDecode } from 'jwt-decode';
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
   allowedRoles?: string[];
+}
+
+interface DecodedToken {
+  id: string;
+  exp: number;
+  iat: number;
 }
 
 export default function ProtectedRoute({ children, allowedRoles = ['traveler'] }: ProtectedRouteProps) {
@@ -23,20 +30,30 @@ export default function ProtectedRoute({ children, allowedRoles = ['traveler'] }
       }
 
       try {
+        // Check token expiration
+        const decoded = jwtDecode<DecodedToken>(token);
+        if (decoded.exp * 1000 < Date.now()) {
+          localStorage.removeItem('token');
+          localStorage.removeItem('user');
+          router.push('/login');
+          return;
+        }
+
         const user = JSON.parse(userStr);
         
         if (!allowedRoles.includes(user.role)) {
           router.push('/');
           return;
         }
+
+        setIsLoading(false);
       } catch (error) {
+        console.error('Auth check error:', error);
         localStorage.removeItem('token');
         localStorage.removeItem('user');
         router.push('/login');
         return;
       }
-
-      setIsLoading(false);
     };
 
     checkAuth();

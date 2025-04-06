@@ -16,6 +16,7 @@ import {
   FaCircle
 } from 'react-icons/fa';
 import DateDisplay from '@/components/DateDisplay';
+import { formatDate, formatDateTime } from '@/utils/dateFormatters';
 
 // Sample chat data
 const chats = [
@@ -229,8 +230,9 @@ export default function MessagesPage() {
         const hours = Math.floor(diffMins / 60);
         lastSeenText = `${hours} hour${hours === 1 ? '' : 's'} ago`;
       } else {
-        // Return formatted date if more than a day
-        lastSeenText = `${lastSeenDate.toLocaleDateString()} at ${lastSeenDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
+        const formattedDate = formatDate(selectedChat.contact.lastSeen);
+        const formattedTime = lastSeenDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        lastSeenText = `${formattedDate} at ${formattedTime}`;
       }
       setFormattedLastSeen(lastSeenText);
     }

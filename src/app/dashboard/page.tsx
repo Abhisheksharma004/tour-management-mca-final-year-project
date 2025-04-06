@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
+import DateDisplay from '@/components/DateDisplay';
 
 // Mock user data
 const user = {
@@ -152,7 +153,7 @@ export default function Dashboard() {
                 <h2 className="text-xl font-semibold">Upcoming Trips</h2>
                 
                 {user.upcomingBookings.length > 0 ? (
-                  user.upcomingBookings.map(booking => (
+                  user.upcomingBookings.map((booking, index) => (
                     <div key={booking.id} className="bg-gray-800 rounded-lg shadow-md overflow-hidden flex flex-col md:flex-row">
                       <div className="relative w-full md:w-48 h-48 md:h-auto">
                         <Image 
@@ -161,6 +162,7 @@ export default function Dashboard() {
                           fill
                           sizes="(max-width: 768px) 100vw, 192px"
                           style={{ objectFit: "cover" }}
+                          priority={index === 0}
                           unoptimized
                         />
                       </div>
@@ -178,7 +180,7 @@ export default function Dashboard() {
                           <span className="font-medium">Location:</span> {booking.location}
                         </p>
                         <p className="text-gray-300">
-                          <span className="font-medium">Date:</span> {new Date(booking.date).toLocaleDateString()}
+                          <span className="font-medium">Date:</span> <DateDisplay date={booking.date} />
                         </p>
                         <p className="text-gray-300">
                           <span className="font-medium">Time:</span> {booking.time}
@@ -244,7 +246,7 @@ export default function Dashboard() {
                           <span className="font-medium">Location:</span> {booking.location}
                         </p>
                         <p className="text-gray-300">
-                          <span className="font-medium">Date:</span> {new Date(booking.date).toLocaleDateString()}
+                          <span className="font-medium">Date:</span> <DateDisplay date={booking.date} />
                         </p>
                         
                         <div className="mt-4 flex flex-wrap gap-2">
@@ -277,62 +279,43 @@ export default function Dashboard() {
               <div className="space-y-6">
                 <h2 className="text-xl font-semibold">Saved Guides</h2>
                 
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                  {user.savedGuides.length > 0 ? (
-                    user.savedGuides.map(guide => (
-                      <div key={guide.id} className="bg-gray-800 rounded-lg shadow-md overflow-hidden">
-                        <div className="relative h-48">
-                          <Image 
-                            src={guide.image} 
-                            alt={guide.name}
-                            fill
-                            sizes="(max-width: 768px) 100vw, 64px"
-                            style={{ objectFit: "cover" }}
-                            unoptimized
-                          />
-                          <button className="absolute top-2 right-2 p-2 bg-gray-800 bg-opacity-70 rounded-full">
-                            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-red-500" viewBox="0 0 20 20" fill="currentColor">
-                              <path fillRule="evenodd" d="M3.172 5.172a4 4 0 015.656 0L10 6.343l1.172-1.171a4 4 0 115.656 5.656L10 17.657l-6.828-6.829a4 4 0 010-5.656z" clipRule="evenodd" />
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {user.savedGuides.map(guide => (
+                    <div key={guide.id} className="bg-gray-800 rounded-lg shadow-md overflow-hidden">
+                      <div className="relative h-48">
+                        <Image 
+                          src={guide.image} 
+                          alt={guide.name}
+                          fill
+                          sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                          style={{ objectFit: "cover" }}
+                          unoptimized
+                        />
+                      </div>
+                      <div className="p-4">
+                        <div className="flex justify-between">
+                          <h3 className="font-semibold text-lg">{guide.name}</h3>
+                          <div className="flex items-center">
+                            <svg className="w-4 h-4 text-yellow-400 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                              <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
                             </svg>
+                            <span>{guide.rating}</span>
+                          </div>
+                        </div>
+                        <p className="text-gray-300 mt-1">{guide.location}</p>
+                        <p className="text-gray-400 text-sm mt-1">Specializes in: {guide.specialty}</p>
+                        
+                        <div className="mt-4 flex gap-2">
+                          <button className="flex-1 px-2 py-2 bg-orange-600 text-white rounded-md hover:bg-orange-700 text-sm">
+                            View Profile
+                          </button>
+                          <button className="flex-1 px-2 py-2 border border-gray-600 text-gray-300 rounded-md hover:bg-gray-700 text-sm">
+                            Book Tour
                           </button>
                         </div>
-                        <div className="p-4">
-                          <div className="flex justify-between items-start">
-                            <h3 className="text-lg font-semibold">{guide.name}</h3>
-                            <div className="flex items-center">
-                              <span className="text-yellow-500">★</span>
-                              <span className="ml-1 font-medium">{guide.rating}</span>
-                            </div>
-                          </div>
-                          <p className="text-gray-300 mt-1">{guide.location}</p>
-                          <p className="text-gray-300 text-sm mt-2">{guide.specialty}</p>
-                          
-                          <div className="mt-4 flex justify-between items-center">
-                            <Link href={`/guide-profile?id=${guide.id}`}>
-                              <div className="px-3 py-1 bg-orange-600 text-white rounded-md text-sm hover:bg-orange-700">
-                                View Profile
-                              </div>
-                            </Link>
-                            <Link href={`/booking?guideId=${guide.id}`}>
-                              <div className="px-3 py-1 border border-orange-500 text-orange-400 rounded-md text-sm hover:bg-orange-900">
-                                Book Now
-                              </div>
-                            </Link>
-                          </div>
-                        </div>
                       </div>
-                    ))
-                  ) : (
-                    <div className="col-span-full text-center py-12 bg-gray-800 rounded-lg">
-                      <h3 className="text-lg font-medium">No saved guides yet</h3>
-                      <p className="text-gray-400 mt-2">Start saving guides you're interested in</p>
-                      <Link href="/search-guides">
-                        <div className="mt-4 inline-block px-4 py-2 bg-orange-600 text-white rounded-md hover:bg-orange-700">
-                          Find Guides
-                        </div>
-                      </Link>
                     </div>
-                  )}
+                  ))}
                 </div>
               </div>
             )}

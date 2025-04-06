@@ -12,7 +12,9 @@ export default function LoginPage() {
     password: '',
   });
   const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
   const [loading, setLoading] = useState(false);
+  const [debug, setDebug] = useState('');
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData({
@@ -24,10 +26,14 @@ export default function LoginPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
+    setSuccess('');
+    setDebug('');
     setLoading(true);
 
     try {
-      const response = await fetch('/api/auth/login', {
+      setDebug('Sending login request to direct-login endpoint...');
+      
+      const response = await fetch('/api/auth/direct-login', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -35,29 +41,34 @@ export default function LoginPage() {
         body: JSON.stringify(formData),
       });
 
+      setDebug(prev => `${prev}\nResponse status: ${response.status}`);
       const data = await response.json();
+      setDebug(prev => `${prev}\nReceived response: ${JSON.stringify(data, null, 2)}`);
 
       if (!response.ok) {
         throw new Error(data.error || 'Failed to login');
       }
 
+      setSuccess('Login successful! Redirecting to dashboard...');
+
       // Store token in localStorage
       localStorage.setItem('token', data.token);
-      localStorage.setItem('user', JSON.stringify({
-        _id: data._id,
-        name: data.name,
-        email: data.email,
-        role: data.role,
-      }));
+      localStorage.setItem('user', JSON.stringify(data.user));
 
       // Redirect based on role
-      if (data.role === 'traveler') {
-        router.push('/traveler/dashboard');
-      } else if (data.role === 'admin') {
-        router.push('/admin/dashboard');
-      }
+      setTimeout(() => {
+        if (data.user.role === 'traveler') {
+          router.push('/traveler/dashboard');
+        } else if (data.user.role === 'admin') {
+          router.push('/admin/dashboard');
+        } else {
+          router.push('/');
+        }
+      }, 1500);
     } catch (error) {
+      console.error('Login error:', error);
       setError(error instanceof Error ? error.message : 'Failed to login');
+      setDebug(prev => `${prev}\nError: ${error instanceof Error ? error.message : JSON.stringify(error)}`);
     } finally {
       setLoading(false);
     }
@@ -95,6 +106,12 @@ export default function LoginPage() {
             {error && (
               <div className="bg-red-500 text-white p-3 rounded-md text-sm">
                 {error}
+              </div>
+            )}
+            
+            {success && (
+              <div className="bg-green-500 text-white p-3 rounded-md text-sm">
+                {success}
               </div>
             )}
             
@@ -176,6 +193,16 @@ export default function LoginPage() {
               </button>
             </div>
           </form>
+
+          {/* Debug panel */}
+          {debug && (
+            <div className="mt-6 p-3 border border-gray-700 rounded-md bg-gray-900">
+              <h3 className="text-sm font-medium text-gray-300 mb-2">Debug Info:</h3>
+              <pre className="text-xs text-gray-400 whitespace-pre-wrap break-words">
+                {debug}
+              </pre>
+            </div>
+          )}
         </div>
       </div>
     </div>

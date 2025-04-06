@@ -29,10 +29,6 @@ export const metadata: Metadata = {
     description: 'Connect with local guides for authentic travel experiences around the world.',
     images: ['/images/twitter-image.jpg'],
   },
-  viewport: {
-    width: 'device-width',
-    initialScale: 1,
-  },
   icons: {
     icon: '/favicon.ico',
     apple: [

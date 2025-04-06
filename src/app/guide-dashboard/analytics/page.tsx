@@ -17,6 +17,7 @@ import {
   FaChartLine,
   FaChartPie
 } from 'react-icons/fa';
+import DateDisplay from '@/components/DateDisplay';
 
 // Sample analytics data
 const monthlyEarnings = [
@@ -504,7 +505,7 @@ export default function AnalyticsPage() {
                       </div>
                       <p className="text-sm text-gray-300 mb-2">{review.comment}</p>
                       <div className="flex justify-between items-center">
-                        <span className="text-xs text-gray-400">{new Date(review.date).toLocaleDateString()}</span>
+                        <span className="text-xs text-gray-400"><DateDisplay date={review.date} /></span>
                         <button className="text-xs text-orange-500 hover:text-orange-400">
                           Reply
                         </button>

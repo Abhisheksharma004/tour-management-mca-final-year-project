@@ -7,6 +7,14 @@ import Image from 'next/image';
 import { FaUser, FaSignOutAlt, FaBars, FaTimes } from 'react-icons/fa';
 import ProtectedRoute from '@/components/auth/ProtectedRoute';
 
+interface User {
+  _id: string;
+  name: string;
+  email: string;
+  role: string;
+  avatar?: string;
+}
+
 export default function TravelerLayout({
   children,
 }: {
@@ -14,20 +22,43 @@ export default function TravelerLayout({
 }) {
   const router = useRouter();
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-  const [user, setUser] = useState<any>(null);
+  const [user, setUser] = useState<User | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    const userStr = localStorage.getItem('user');
-    if (userStr) {
-      setUser(JSON.parse(userStr));
-    }
-  }, []);
+    const loadUser = () => {
+      try {
+        const userStr = localStorage.getItem('user');
+        if (userStr) {
+          const parsedUser = JSON.parse(userStr) as User;
+          setUser(parsedUser);
+        }
+      } catch (error) {
+        console.error('Error loading user:', error);
+        localStorage.removeItem('token');
+        localStorage.removeItem('user');
+        router.push('/login');
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    loadUser();
+  }, [router]);
 
   const handleLogout = () => {
     localStorage.removeItem('token');
     localStorage.removeItem('user');
     router.push('/login');
   };
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-gray-900 flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-orange-500"></div>
+      </div>
+    );
+  }
 
   return (
     <ProtectedRoute allowedRoles={['traveler']}>
@@ -49,57 +80,43 @@ export default function TravelerLayout({
           } lg:translate-x-0 transition-transform duration-200 ease-in-out`}
         >
           <div className="flex flex-col h-full">
-            <div className="flex items-center justify-center h-16 px-4 bg-gray-900">
-              <Link href="/" className="flex items-center">
-                <div className="relative w-8 h-8">
+            {/* User info */}
+            <div className="p-4 border-b border-gray-700">
+              <div className="flex items-center space-x-3">
+                <div className="relative w-10 h-10 rounded-full overflow-hidden">
                   <Image
-                    src="/logo.png"
-                    alt="Logo"
+                    src={user?.avatar || '/images/default-avatar.png'}
+                    alt={user?.name || 'User'}
                     fill
-                    className="object-contain"
-                    priority
+                    className="object-cover"
                   />
                 </div>
-                <span className="ml-2 text-xl font-bold text-white">
-                  TourGuide
-                </span>
-              </Link>
-            </div>
-
-            <nav className="flex-1 px-4 py-4 space-y-1">
-              <Link
-                href="/traveler/dashboard"
-                className="flex items-center px-4 py-2 text-gray-300 hover:bg-gray-700 rounded-md"
-              >
-                <FaUser className="mr-3" />
-                Dashboard
-              </Link>
-              {/* Add more navigation links here */}
-            </nav>
-
-            <div className="p-4 border-t border-gray-700">
-              <div className="flex items-center">
-                <div className="flex-shrink-0">
-                  <div className="relative w-8 h-8">
-                    <Image
-                      src={user?.avatar || 'https://ui-avatars.com/api/?name=User&background=random'}
-                      alt="User avatar"
-                      fill
-                      className="rounded-full object-cover"
-                    />
-                  </div>
-                </div>
-                <div className="ml-3">
-                  <p className="text-sm font-medium text-white">{user?.name}</p>
-                  <p className="text-xs text-gray-400">{user?.email}</p>
+                <div>
+                  <h3 className="text-white font-medium">{user?.name}</h3>
+                  <p className="text-gray-400 text-sm">{user?.email}</p>
                 </div>
               </div>
+            </div>
+
+            {/* Navigation */}
+            <nav className="flex-1 p-4">
+              <Link
+                href="/traveler/dashboard"
+                className="flex items-center space-x-3 text-gray-300 hover:text-white p-2 rounded-md hover:bg-gray-700"
+              >
+                <FaUser />
+                <span>Dashboard</span>
+              </Link>
+            </nav>
+
+            {/* Logout button */}
+            <div className="p-4 border-t border-gray-700">
               <button
                 onClick={handleLogout}
-                className="mt-4 w-full flex items-center px-4 py-2 text-gray-300 hover:bg-gray-700 rounded-md"
+                className="flex items-center space-x-3 text-gray-300 hover:text-white w-full p-2 rounded-md hover:bg-gray-700"
               >
-                <FaSignOutAlt className="mr-3" />
-                Sign out
+                <FaSignOutAlt />
+                <span>Logout</span>
               </button>
             </div>
           </div>
