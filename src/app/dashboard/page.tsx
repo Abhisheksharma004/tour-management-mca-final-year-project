@@ -1,90 +1,199 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import DateDisplay from '@/components/DateDisplay';
 
-// Mock user data
-const user = {
-  name: 'Emily Johnson',
-  avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=687&q=80',
-  upcomingBookings: [
-    {
-      id: 1,
-      tourName: 'Tokyo Night Food Tour',
-      guideName: 'Sophia Chen',
-      location: 'Tokyo, Japan',
-      date: '2023-12-15',
-      time: '19:00',
-      status: 'Confirmed',
-      image: 'https://images.unsplash.com/photo-1503899036084-c55cdd92da26?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1587&q=80'
-    },
-    {
-      id: 2,
-      tourName: 'Ancient Rome Walking Tour',
-      guideName: 'Marco Rossi',
-      location: 'Rome, Italy',
-      date: '2024-02-10',
-      time: '09:30',
-      status: 'Pending',
-      image: 'https://images.unsplash.com/photo-1552832230-c0197dd311b5?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1396&q=80'
-    }
-  ],
-  pastBookings: [
-    {
-      id: 3,
-      tourName: 'Old Delhi Food Walk',
-      guideName: 'Raj Mehta',
-      location: 'Delhi, India',
-      date: '2023-09-05',
-      time: '18:00',
-      status: 'Completed',
-      hasReviewed: true,
-      image: 'https://images.unsplash.com/photo-1582650642304-8e5d25eab1b9?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1469&q=80'
-    },
-    {
-      id: 4,
-      tourName: 'Cairo Pyramids Tour',
-      guideName: 'Aisha Rahman',
-      location: 'Cairo, Egypt',
-      date: '2023-08-12',
-      time: '08:00',
-      status: 'Completed',
-      hasReviewed: false,
-      image: 'https://images.unsplash.com/photo-1539650116574-8efeb43e2750?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1470&q=80'
-    }
-  ],
-  savedGuides: [
-    {
-      id: 1,
-      name: 'Sophia Chen',
-      location: 'Tokyo, Japan',
-      rating: 5.0,
-      specialty: 'Food, Nightlife, Culture',
-      image: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=764&q=80'
-    },
-    {
-      id: 3,
-      name: 'Marco Rossi',
-      location: 'Rome, Italy',
-      rating: 4.8,
-      specialty: 'History, Art, Architecture',
-      image: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1470&q=80'
-    },
-    {
-      id: 5,
-      name: 'Carlos Mendoza',
-      location: 'Mexico City, Mexico',
-      rating: 4.9,
-      specialty: 'Food, History, Indigenous Culture',
-      image: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=687&q=80'
-    }
-  ]
-};
+// Define types for the dashboard data
+interface Booking {
+  id: string;
+  tourName: string;
+  guideName: string;
+  location: string;
+  date: string;
+  time: string;
+  status: string;
+  image: string;
+  hasReviewed?: boolean;
+}
+
+interface SavedGuide {
+  id: string;
+  name: string;
+  location: string;
+  rating: number;
+  specialty: string;
+  image: string;
+}
+
+interface UserData {
+  name: string;
+  avatar: string;
+  upcomingBookings: Booking[];
+  pastBookings: Booking[];
+  savedGuides: SavedGuide[];
+}
 
 export default function Dashboard() {
   const [activeTab, setActiveTab] = useState('upcoming');
+  const [userData, setUserData] = useState<UserData | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [removingGuide, setRemovingGuide] = useState<string | null>(null);
+  const [cancelingBooking, setCancelingBooking] = useState<string | null>(null);
+  const [bookingToCancel, setBookingToCancel] = useState<string | null>(null);
+
+  useEffect(() => {
+    const fetchDashboardData = async () => {
+      try {
+        setLoading(true);
+        const response = await fetch('/api/dashboard/user-dashboard');
+        
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.error || 'Failed to fetch dashboard data');
+        }
+        
+        const data = await response.json();
+        if (data.success) {
+          setUserData(data.userData);
+        } else {
+          throw new Error(data.error || 'Failed to fetch dashboard data');
+        }
+      } catch (err) {
+        console.error('Error fetching dashboard data:', err);
+        setError(err instanceof Error ? err.message : 'An error occurred');
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    fetchDashboardData();
+  }, []);
+
+  const removeSavedGuide = async (guideId: string) => {
+    if (!userData) return;
+    
+    try {
+      setRemovingGuide(guideId);
+      
+      const response = await fetch('/api/dashboard/remove-saved-guide', {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ guideId }),
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to remove guide');
+      }
+      
+      // Update local state to remove the guide
+      setUserData({
+        ...userData,
+        savedGuides: userData.savedGuides.filter(guide => guide.id !== guideId)
+      });
+      
+    } catch (err) {
+      console.error('Error removing saved guide:', err);
+      alert('Failed to remove guide from saved collection');
+    } finally {
+      setRemovingGuide(null);
+    }
+  };
+
+  const cancelBooking = async (bookingId: string) => {
+    if (!userData) return;
+    
+    try {
+      setCancelingBooking(bookingId);
+      
+      const response = await fetch('/api/dashboard/cancel-booking', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ bookingId }),
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || errorData.message || 'Failed to cancel booking');
+      }
+      
+      // Update local state to change the booking status
+      setUserData({
+        ...userData,
+        upcomingBookings: userData.upcomingBookings.map(booking => 
+          booking.id === bookingId 
+            ? { ...booking, status: 'Canceled' } 
+            : booking
+        )
+      });
+      
+      // Close the confirmation modal
+      setBookingToCancel(null);
+      
+    } catch (err) {
+      console.error('Error canceling booking:', err);
+      alert(err instanceof Error ? err.message : 'Failed to cancel booking');
+    } finally {
+      setCancelingBooking(null);
+    }
+  };
+
+  // Loading state
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-900 text-white flex items-center justify-center">
+        <div className="text-center">
+          <div className="inline-block animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-orange-500 mb-4"></div>
+          <p className="text-xl">Loading your dashboard...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Error state
+  if (error) {
+    return (
+      <div className="min-h-screen bg-gray-900 text-white flex items-center justify-center">
+        <div className="text-center max-w-md bg-gray-800 p-8 rounded-lg">
+          <div className="text-red-500 text-5xl mb-4">⚠️</div>
+          <h1 className="text-2xl font-bold mb-4">Something went wrong</h1>
+          <p className="text-gray-300 mb-6">{error}</p>
+          <button
+            onClick={() => window.location.reload()}
+            className="px-4 py-2 bg-orange-600 text-white rounded-md hover:bg-orange-700 transition"
+          >
+            Try Again
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  // No data state (user not authenticated or no data found)
+  if (!userData) {
+    return (
+      <div className="min-h-screen bg-gray-900 text-white flex items-center justify-center">
+        <div className="text-center max-w-md bg-gray-800 p-8 rounded-lg">
+          <h1 className="text-2xl font-bold mb-4">No Dashboard Data</h1>
+          <p className="text-gray-300 mb-6">
+            Please log in to view your dashboard.
+          </p>
+          <Link href="/login">
+            <div className="px-4 py-2 bg-orange-600 text-white rounded-md hover:bg-orange-700 transition inline-block">
+              Log In
+            </div>
+          </Link>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-900 text-white">
@@ -95,8 +204,8 @@ export default function Dashboard() {
             <div className="flex items-center space-x-4 mb-6">
               <div className="relative w-16 h-16 rounded-full overflow-hidden">
                 <Image 
-                  src={user.avatar} 
-                  alt={user.name}
+                  src={userData.avatar} 
+                  alt={userData.name}
                   fill
                   sizes="64px"
                   style={{ objectFit: "cover" }}
@@ -104,7 +213,7 @@ export default function Dashboard() {
                 />
               </div>
               <div>
-                <h2 className="text-lg font-semibold">{user.name}</h2>
+                <h2 className="text-lg font-semibold">{userData.name}</h2>
                 <p className="text-orange-400">Traveler</p>
               </div>
             </div>
@@ -131,12 +240,16 @@ export default function Dashboard() {
             </nav>
             
             <div className="mt-8 pt-6 border-t border-gray-700">
-              <button className="w-full px-4 py-2 bg-orange-600 text-white rounded-md hover:bg-orange-700 transition">
-                Find New Guides
-              </button>
-              <button className="w-full mt-2 px-4 py-2 border border-gray-600 text-gray-300 rounded-md hover:bg-gray-700 transition">
-                Account Settings
-              </button>
+              <Link href="/search-guides">
+                <button className="w-full px-4 py-2 bg-orange-600 text-white rounded-md hover:bg-orange-700 transition">
+                  Find New Guides
+                </button>
+              </Link>
+              <Link href="/account-settings">
+                <button className="w-full mt-2 px-4 py-2 border border-gray-600 text-gray-300 rounded-md hover:bg-gray-700 transition">
+                  Account Settings
+                </button>
+              </Link>
             </div>
           </div>
           
@@ -152,8 +265,8 @@ export default function Dashboard() {
               <div className="space-y-6">
                 <h2 className="text-xl font-semibold">Upcoming Trips</h2>
                 
-                {user.upcomingBookings.length > 0 ? (
-                  user.upcomingBookings.map((booking, index) => (
+                {userData.upcomingBookings.length > 0 ? (
+                  userData.upcomingBookings.map((booking, index) => (
                     <div key={booking.id} className="bg-gray-800 rounded-lg shadow-md overflow-hidden flex flex-col md:flex-row">
                       <div className="relative w-full md:w-48 h-48 md:h-auto">
                         <Image 
@@ -169,7 +282,10 @@ export default function Dashboard() {
                       <div className="p-4 flex-1">
                         <div className="flex justify-between">
                           <h3 className="font-semibold text-lg">{booking.tourName}</h3>
-                          <span className={`px-2 py-1 rounded-full text-xs ${booking.status === 'Confirmed' ? 'bg-green-900 text-green-300' : 'bg-yellow-900 text-yellow-300'}`}>
+                          <span className={`px-2 py-1 rounded-full text-xs 
+                            ${booking.status === 'Confirmed' ? 'bg-green-900 text-green-300' : 
+                              booking.status === 'Canceled' ? 'bg-red-900 text-red-300' : 
+                              'bg-yellow-900 text-yellow-300'}`}>
                             {booking.status}
                           </span>
                         </div>
@@ -187,15 +303,25 @@ export default function Dashboard() {
                         </p>
                         
                         <div className="mt-4 flex flex-wrap gap-2">
-                          <button className="px-4 py-2 bg-orange-600 text-white rounded-md hover:bg-orange-700">
-                            View Details
-                          </button>
-                          <button className="px-4 py-2 border border-red-500 text-red-400 rounded-md hover:bg-red-900">
-                            Cancel Booking
-                          </button>
-                          <button className="px-4 py-2 border border-gray-600 text-gray-300 rounded-md hover:bg-gray-700">
-                            Contact Guide
-                          </button>
+                          <Link href={`/booking/${booking.id}`}>
+                            <button className="px-4 py-2 bg-orange-600 text-white rounded-md hover:bg-orange-700">
+                              View Details
+                            </button>
+                          </Link>
+                          {booking.status !== 'Canceled' && (
+                            <button 
+                              className="px-4 py-2 border border-red-500 text-red-400 rounded-md hover:bg-red-900"
+                              onClick={() => setBookingToCancel(booking.id)}
+                              disabled={cancelingBooking !== null}
+                            >
+                              {cancelingBooking === booking.id ? 'Canceling...' : 'Cancel Booking'}
+                            </button>
+                          )}
+                          <Link href={`/messages?guide=${booking.id}`}>
+                            <button className="px-4 py-2 border border-gray-600 text-gray-300 rounded-md hover:bg-gray-700">
+                              Contact Guide
+                            </button>
+                          </Link>
                         </div>
                       </div>
                     </div>
@@ -219,8 +345,8 @@ export default function Dashboard() {
               <div className="space-y-6">
                 <h2 className="text-xl font-semibold">Past Trips</h2>
                 
-                {user.pastBookings.length > 0 ? (
-                  user.pastBookings.map(booking => (
+                {userData.pastBookings.length > 0 ? (
+                  userData.pastBookings.map(booking => (
                     <div key={booking.id} className="bg-gray-800 rounded-lg shadow-md overflow-hidden flex flex-col md:flex-row">
                       <div className="relative w-full md:w-48 h-48 md:h-auto">
                         <Image 
@@ -248,19 +374,28 @@ export default function Dashboard() {
                         <p className="text-gray-300">
                           <span className="font-medium">Date:</span> <DateDisplay date={booking.date} />
                         </p>
+                        <p className="text-gray-300">
+                          <span className="font-medium">Time:</span> {booking.time}
+                        </p>
                         
                         <div className="mt-4 flex flex-wrap gap-2">
-                          {!booking.hasReviewed && (
+                          <Link href={`/booking/${booking.id}`}>
                             <button className="px-4 py-2 bg-orange-600 text-white rounded-md hover:bg-orange-700">
-                              Write a Review
+                              View Details
+                            </button>
+                          </Link>
+                          {!booking.hasReviewed && booking.status !== 'Canceled' && (
+                            <Link href={`/write-review/${booking.id}`}>
+                              <button className="px-4 py-2 border border-green-500 text-green-400 rounded-md hover:bg-green-900">
+                                Write Review
+                              </button>
+                            </Link>
+                          )}
+                          {booking.hasReviewed && (
+                            <button className="px-4 py-2 bg-gray-700 text-gray-300 rounded-md cursor-default">
+                              Reviewed ✓
                             </button>
                           )}
-                          <button className="px-4 py-2 border border-gray-600 text-gray-300 rounded-md hover:bg-gray-700">
-                            View Details
-                          </button>
-                          <button className="px-4 py-2 border border-orange-500 text-orange-400 rounded-md hover:bg-orange-900">
-                            Book Again
-                          </button>
                         </div>
                       </div>
                     </div>
@@ -279,49 +414,112 @@ export default function Dashboard() {
               <div className="space-y-6">
                 <h2 className="text-xl font-semibold">Saved Guides</h2>
                 
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {user.savedGuides.map(guide => (
-                    <div key={guide.id} className="bg-gray-800 rounded-lg shadow-md overflow-hidden">
-                      <div className="relative h-48">
-                        <Image 
-                          src={guide.image} 
-                          alt={guide.name}
-                          fill
-                          sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-                          style={{ objectFit: "cover" }}
-                          unoptimized
-                        />
-                      </div>
-                      <div className="p-4">
-                        <div className="flex justify-between">
+                {userData.savedGuides.length > 0 ? (
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {userData.savedGuides.map(guide => (
+                      <div key={guide.id} className="bg-gray-800 rounded-lg overflow-hidden shadow-md flex flex-col">
+                        <div className="relative h-48">
+                          <Image 
+                            src={guide.image} 
+                            alt={guide.name}
+                            fill
+                            sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                            style={{ objectFit: "cover" }}
+                            unoptimized
+                          />
+                        </div>
+                        <div className="p-4 flex-1 flex flex-col">
                           <h3 className="font-semibold text-lg">{guide.name}</h3>
-                          <div className="flex items-center">
-                            <svg className="w-4 h-4 text-yellow-400 mr-1" fill="currentColor" viewBox="0 0 20 20">
-                              <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
-                            </svg>
-                            <span>{guide.rating}</span>
+                          <p className="text-gray-300 text-sm mb-1">{guide.location}</p>
+                          <div className="flex items-center mb-1">
+                            <span className="text-yellow-400">★</span>
+                            <span className="ml-1">{guide.rating.toFixed(1)}</span>
+                          </div>
+                          <p className="text-gray-400 text-sm mb-4">
+                            <span className="font-medium">Specialty:</span> {guide.specialty}
+                          </p>
+                          <div className="mt-auto pt-4 flex flex-col space-y-2">
+                            <Link href={`/guide/${guide.id}`}>
+                              <button className="w-full px-4 py-2 bg-orange-600 text-white rounded-md hover:bg-orange-700 transition">
+                                View Profile
+                              </button>
+                            </Link>
+                            <button 
+                              className="w-full px-4 py-2 border border-gray-600 text-gray-300 rounded-md hover:bg-gray-700 transition"
+                              onClick={() => removeSavedGuide(guide.id)}
+                              disabled={removingGuide === guide.id}
+                            >
+                              {removingGuide === guide.id ? (
+                                <span className="flex items-center justify-center">
+                                  <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                  </svg>
+                                  Removing...
+                                </span>
+                              ) : (
+                                'Remove from Saved'
+                              )}
+                            </button>
                           </div>
                         </div>
-                        <p className="text-gray-300 mt-1">{guide.location}</p>
-                        <p className="text-gray-400 text-sm mt-1">Specializes in: {guide.specialty}</p>
-                        
-                        <div className="mt-4 flex gap-2">
-                          <button className="flex-1 px-2 py-2 bg-orange-600 text-white rounded-md hover:bg-orange-700 text-sm">
-                            View Profile
-                          </button>
-                          <button className="flex-1 px-2 py-2 border border-gray-600 text-gray-300 rounded-md hover:bg-gray-700 text-sm">
-                            Book Tour
-                          </button>
-                        </div>
                       </div>
-                    </div>
-                  ))}
-                </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-center py-12 bg-gray-800 rounded-lg">
+                    <h3 className="text-lg font-medium">No saved guides</h3>
+                    <p className="text-gray-400 mt-2">Save your favorite guides to find them quickly later</p>
+                    <Link href="/search-guides">
+                      <div className="mt-4 inline-block px-4 py-2 bg-orange-600 text-white rounded-md hover:bg-orange-700">
+                        Explore Guides
+                      </div>
+                    </Link>
+                  </div>
+                )}
               </div>
             )}
           </div>
         </div>
       </div>
+
+      {/* Cancellation Confirmation Modal */}
+      {bookingToCancel && (
+        <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50 p-4">
+          <div className="bg-gray-800 rounded-lg p-6 max-w-md w-full">
+            <h3 className="text-xl font-bold mb-4">Cancel Booking</h3>
+            <p className="text-gray-300 mb-6">
+              Are you sure you want to cancel this booking? This action cannot be undone.
+            </p>
+            <div className="flex gap-3">
+              <button
+                className="flex-1 px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 transition"
+                onClick={() => cancelBooking(bookingToCancel)}
+                disabled={cancelingBooking !== null}
+              >
+                {cancelingBooking ? (
+                  <span className="flex items-center justify-center">
+                    <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    Processing...
+                  </span>
+                ) : (
+                  'Yes, Cancel Booking'
+                )}
+              </button>
+              <button
+                className="flex-1 px-4 py-2 border border-gray-600 text-gray-300 rounded-md hover:bg-gray-700 transition"
+                onClick={() => setBookingToCancel(null)}
+                disabled={cancelingBooking !== null}
+              >
+                No, Keep It
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 } 

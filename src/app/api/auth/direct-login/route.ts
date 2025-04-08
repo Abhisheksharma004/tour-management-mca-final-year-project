@@ -65,7 +65,12 @@ export async function POST(request: Request) {
     
     // Generate JWT token
     const token = jwt.sign(
-      { id: user._id.toString() },
+      { 
+        id: user._id.toString(),
+        name: user.name,
+        email: user.email,
+        role: user.role || 'traveler' // Default to traveler if role not specified
+      },
       process.env.JWT_SECRET || 'fallback_secret',
       { expiresIn: '30d' }
     );

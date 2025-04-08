@@ -58,13 +58,12 @@ export default function LoginPage() {
       localStorage.setItem('user', JSON.stringify(data.user));
       localStorage.setItem('isLoggedIn', 'true');
 
-      // Show dashboard in menu by setting a flag
+      // We use this event to notify other components that the user has logged in
       if (typeof window !== 'undefined') {
-        // We use this event to notify other components that the user has logged in
         window.dispatchEvent(new Event('userLoggedIn'));
       }
 
-      // Redirect to dashboard immediately
+      // Redirect to dashboard page
       router.push('/dashboard');
     } catch (error) {
       console.error('Login error:', error);

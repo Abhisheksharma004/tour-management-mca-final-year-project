@@ -68,9 +68,18 @@ export default function ClientHeader() {
   // Function to render dashboard link for logged-in users
   const renderDashboardLink = (className: string, onClick?: () => void) => {
     if (isLoggedIn) {
+      // Get the correct dashboard URL based on user role
+      let dashboardUrl = '/dashboard'; // Default for travelers
+      
+      if (userRole === 'guide') {
+        dashboardUrl = '/guide-dashboard';
+      } else if (userRole === 'admin') {
+        dashboardUrl = '/admin-dashboard';
+      }
+      
       return (
         <TransitionLink 
-          href={userRole === 'traveler' ? '/traveler/dashboard' : '/guide-dashboard'} 
+          href={dashboardUrl} 
           className={className}
           onClick={onClick}
         >
