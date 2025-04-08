@@ -13,22 +13,9 @@ interface DecodedToken {
 export function middleware(request: NextRequest) {
   // Get the token from the cookies
   const token = request.cookies.get('token')?.value;
-  const url = request.nextUrl.pathname;
-  
-  // Skip authentication for API test routes and auth routes
-  if (
-    url.includes('/api/test') ||
-    url.includes('/api/db-test') ||
-    url.includes('/api/init-db') ||
-    url.includes('/api/auth/') ||
-    url.includes('/api/db-debug') ||
-    url.includes('/api/direct-mongodb')
-  ) {
-    return NextResponse.next();
-  }
-  
-  // Check for protected routes
-  if (url === '/dashboard' || url.startsWith('/dashboard/')) {
+
+  // Check if the request is for the dashboard
+  if (request.nextUrl.pathname === '/dashboard' || request.nextUrl.pathname.startsWith('/dashboard/')) {
     // If no token is found, redirect to login
     if (!token) {
       return NextResponse.redirect(new URL('/login', request.url));
@@ -43,17 +30,17 @@ export function middleware(request: NextRequest) {
       if (decoded.exp && decoded.exp < currentTime) {
         return NextResponse.redirect(new URL('/login', request.url));
       }
-      
-      // For dashboard, allow all authenticated users (any role)
+
+      // If all checks pass, allow the request to proceed
       return NextResponse.next();
     } catch (error) {
       // If there's any error with the token, redirect to login
       return NextResponse.redirect(new URL('/login', request.url));
     }
   }
-  
-  // Check for guide-dashboard route
-  if (url.startsWith('/guide-dashboard')) {
+
+  // For guide dashboard routes
+  if (request.nextUrl.pathname.startsWith('/guide-dashboard')) {
     // If no token is found, redirect to login
     if (!token) {
       return NextResponse.redirect(new URL('/login', request.url));
@@ -81,9 +68,9 @@ export function middleware(request: NextRequest) {
       return NextResponse.redirect(new URL('/login', request.url));
     }
   }
-  
-  // For admin dashboard (if you have one)
-  if (url.startsWith('/admin-dashboard')) {
+
+  // For traveler dashboard routes
+  if (request.nextUrl.pathname.startsWith('/traveler/')) {
     // If no token is found, redirect to login
     if (!token) {
       return NextResponse.redirect(new URL('/login', request.url));
@@ -99,8 +86,8 @@ export function middleware(request: NextRequest) {
         return NextResponse.redirect(new URL('/login', request.url));
       }
 
-      // Check if the user has the admin role
-      if (decoded.role !== 'admin') {
+      // Check if the user has the traveler role
+      if (decoded.role !== 'traveler') {
         return NextResponse.redirect(new URL('/login', request.url));
       }
 
@@ -111,18 +98,12 @@ export function middleware(request: NextRequest) {
       return NextResponse.redirect(new URL('/login', request.url));
     }
   }
-  
+
   // For all other routes, allow the request to proceed
   return NextResponse.next();
 }
 
-// Configure the middleware to run on specific paths
+// Configure the middleware to run only on specific paths
 export const config = {
-  matcher: [
-    '/api/:path*', 
-    '/dashboard/:path*', 
-    '/dashboard', 
-    '/guide-dashboard/:path*',
-    '/admin-dashboard/:path*'
-  ],
+  matcher: ['/dashboard/:path*', '/guide-dashboard/:path*', '/traveler/:path*'],
 };

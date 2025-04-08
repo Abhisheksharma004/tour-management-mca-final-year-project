@@ -7,6 +7,9 @@ import PageTransition from '@/components/PageTransition';
 import TransitionLink from '@/components/TransitionLink';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
+import { getCookie } from 'cookies-next';
+import { jwtDecode } from 'jwt-decode';
 
 // Staggered animation variants for lists
 const containerVariants = {
@@ -54,8 +57,50 @@ const slides = [
   }
 ];
 
+interface DecodedToken {
+  id: string;
+  exp: number;
+  role?: string;
+}
+
 export default function Home() {
+  const router = useRouter();
   const [current, setCurrent] = useState(0);
+  const [loading, setLoading] = useState(true);
+  
+  useEffect(() => {
+    // Check if the user is logged in and redirect to dashboard
+    const checkAuthAndRedirect = () => {
+      try {
+        // Get token from cookies
+        const token = getCookie('token');
+        
+        if (token) {
+          // If token exists, try to decode it
+          try {
+            const decoded = jwtDecode<DecodedToken>(token as string);
+            const currentTime = Math.floor(Date.now() / 1000);
+            
+            // If token is not expired, redirect to dashboard
+            if (decoded && decoded.exp > currentTime) {
+              router.push('/dashboard');
+              return;
+            }
+          } catch (error) {
+            console.error('Error decoding token:', error);
+          }
+        }
+        
+        // If not redirected, show the home page by setting loading to false
+        setLoading(false);
+      } catch (error) {
+        console.error('Auth check error:', error);
+        setLoading(false);
+      }
+    };
+
+    checkAuthAndRedirect();
+  }, [router]);
   
   useEffect(() => {
     // Auto-rotate slides
@@ -77,6 +122,14 @@ export default function Home() {
   const goToSlide = (index: number) => {
     setCurrent(index);
   };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-900 flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-orange-500"></div>
+      </div>
+    );
+  }
 
   return (
     <PageTransition>
