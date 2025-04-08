@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 
 export default function Signup() {
   const [firstName, setFirstName] = useState('');
@@ -13,37 +14,67 @@ export default function Signup() {
   const [agreeToTerms, setAgreeToTerms] = useState(false);
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const router = useRouter();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
-
-    // Basic validation
+    setIsLoading(true);
+    
+    // Validate passwords match
     if (password !== confirmPassword) {
       setError('Passwords do not match');
+      setIsLoading(false);
       return;
     }
-
+    
+    // Validate password length
+    if (password.length < 8) {
+      setError('Password must be at least 8 characters long');
+      setIsLoading(false);
+      return;
+    }
+    
+    // Validate terms agreement
     if (!agreeToTerms) {
       setError('You must agree to the terms and conditions');
+      setIsLoading(false);
       return;
     }
-
-    setIsLoading(true);
-
+    
     try {
-      // In a real app, you would call a registration API
-      // For now, we'll simulate registration
-      console.log('Registering with:', { firstName, lastName, email, password, userType });
+      // Send registration request to API
+      const response = await fetch('/api/auth/direct-register', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          name: `${firstName} ${lastName}`,
+          email,
+          password,
+          role: userType // Send the selected user type
+        }),
+      });
       
-      // Simulate API call delay
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      const data = await response.json();
       
-      // Redirect to dashboard after successful registration
-      window.location.href = '/dashboard';
+      if (!response.ok) {
+        throw new Error(data.error || 'Registration failed');
+      }
+      
+      // Store token in localStorage
+      localStorage.setItem('token', data.token);
+      
+      // Redirect based on user type
+      if (data.user.role === 'guide') {
+        router.push('/guide/dashboard');
+      } else {
+        router.push('/traveler/dashboard');
+      }
     } catch (err) {
-      setError('Failed to create account. Please try again.');
-      console.error('Signup error:', err);
+      console.error('Registration error:', err);
+      setError(err instanceof Error ? err.message : 'An error occurred during registration');
     } finally {
       setIsLoading(false);
     }

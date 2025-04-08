@@ -6,6 +6,8 @@ import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { FaUser, FaSignOutAlt, FaBars, FaTimes } from 'react-icons/fa';
 import ProtectedRoute from '@/components/auth/ProtectedRoute';
+import { deleteCookie } from 'cookies-next';
+import { jwtDecode } from 'jwt-decode';
 
 interface User {
   _id: string;
@@ -13,6 +15,14 @@ interface User {
   email: string;
   role: string;
   avatar?: string;
+}
+
+interface DecodedToken {
+  id: string;
+  exp: number;
+  iat: number;
+  role: string;
+  name: string;
 }
 
 export default function TravelerLayout({
@@ -24,31 +34,53 @@ export default function TravelerLayout({
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
 
   useEffect(() => {
-    const loadUser = () => {
+    const loadUser = async () => {
       try {
-        const userStr = localStorage.getItem('user');
-        if (userStr) {
-          const parsedUser = JSON.parse(userStr) as User;
-          setUser(parsedUser);
+        // Check if user is authenticated using cookies
+        const token = document.cookie.split('; ').find(row => row.startsWith('token='));
+        
+        if (!token) {
+          throw new Error('Not authenticated');
         }
+        
+        const tokenValue = token.split('=')[1];
+        const decoded = jwtDecode<DecodedToken>(tokenValue);
+        
+        if (decoded.exp * 1000 < Date.now()) {
+          throw new Error('Token expired');
+        }
+        
+        if (decoded.role !== 'traveler') {
+          throw new Error('Not authorized');
+        }
+        
+        setIsAuthenticated(true);
+        
+        // Fetch user data from the server
+        const response = await fetch('/api/auth/me');
+        if (!response.ok) {
+          throw new Error('Failed to fetch user data');
+        }
+        
+        const userData = await response.json();
+        setUser(userData);
       } catch (error) {
         console.error('Error loading user:', error);
-        localStorage.removeItem('token');
-        localStorage.removeItem('user');
-        router.push('/login');
+        handleLogout();
       } finally {
         setIsLoading(false);
       }
     };
 
     loadUser();
-  }, [router]);
+  }, []);
 
   const handleLogout = () => {
-    localStorage.removeItem('token');
-    localStorage.removeItem('user');
+    // Delete the token cookie
+    deleteCookie('token', { path: '/' });
     router.push('/login');
   };
 
@@ -58,6 +90,12 @@ export default function TravelerLayout({
         <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-orange-500"></div>
       </div>
     );
+  }
+
+  // If not authenticated, redirect to login
+  if (!isAuthenticated) {
+    router.push('/login');
+    return null;
   }
 
   return (
@@ -79,46 +117,44 @@ export default function TravelerLayout({
             isSidebarOpen ? 'translate-x-0' : '-translate-x-full'
           } lg:translate-x-0 transition-transform duration-200 ease-in-out`}
         >
-          <div className="flex flex-col h-full">
-            {/* User info */}
-            <div className="p-4 border-b border-gray-700">
-              <div className="flex items-center space-x-3">
-                <div className="relative w-10 h-10 rounded-full overflow-hidden">
-                  <Image
-                    src={user?.avatar || '/images/default-avatar.png'}
-                    alt={user?.name || 'User'}
-                    fill
-                    className="object-cover"
-                  />
-                </div>
-                <div>
-                  <h3 className="text-white font-medium">{user?.name}</h3>
-                  <p className="text-gray-400 text-sm">{user?.email}</p>
-                </div>
+          {/* User info */}
+          <div className="p-4 border-b border-gray-700">
+            <div className="flex items-center space-x-3">
+              <div className="relative w-10 h-10 rounded-full overflow-hidden">
+                <Image
+                  src={user?.avatar || '/images/default-avatar.png'}
+                  alt={user?.name || 'User'}
+                  fill
+                  className="object-cover"
+                />
+              </div>
+              <div>
+                <h3 className="text-white font-medium">{user?.name}</h3>
+                <p className="text-gray-400 text-sm">{user?.email}</p>
               </div>
             </div>
+          </div>
 
-            {/* Navigation */}
-            <nav className="flex-1 p-4">
-              <Link
-                href="/traveler/dashboard"
-                className="flex items-center space-x-3 text-gray-300 hover:text-white p-2 rounded-md hover:bg-gray-700"
-              >
-                <FaUser />
-                <span>Dashboard</span>
-              </Link>
-            </nav>
+          {/* Navigation */}
+          <nav className="flex-1 p-4">
+            <Link
+              href="/traveler/dashboard"
+              className="flex items-center space-x-3 text-gray-300 hover:text-white p-2 rounded-md hover:bg-gray-700"
+            >
+              <FaUser />
+              <span>Dashboard</span>
+            </Link>
+          </nav>
 
-            {/* Logout button */}
-            <div className="p-4 border-t border-gray-700">
-              <button
-                onClick={handleLogout}
-                className="flex items-center space-x-3 text-gray-300 hover:text-white w-full p-2 rounded-md hover:bg-gray-700"
-              >
-                <FaSignOutAlt />
-                <span>Logout</span>
-              </button>
-            </div>
+          {/* Logout button */}
+          <div className="p-4 border-t border-gray-700">
+            <button
+              onClick={handleLogout}
+              className="flex items-center space-x-3 text-gray-300 hover:text-white w-full p-2 rounded-md hover:bg-gray-700"
+            >
+              <FaSignOutAlt />
+              <span>Logout</span>
+            </button>
           </div>
         </div>
 

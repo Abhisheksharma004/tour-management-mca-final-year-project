@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { jwtDecode } from 'jwt-decode';
+import { getCookie } from 'cookies-next';
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
@@ -13,6 +14,8 @@ interface DecodedToken {
   id: string;
   exp: number;
   iat: number;
+  role: string;
+  name: string;
 }
 
 export default function ProtectedRoute({ children, allowedRoles = ['traveler'] }: ProtectedRouteProps) {
@@ -21,27 +24,22 @@ export default function ProtectedRoute({ children, allowedRoles = ['traveler'] }
 
   useEffect(() => {
     const checkAuth = () => {
-      const token = localStorage.getItem('token');
-      const userStr = localStorage.getItem('user');
+      const token = getCookie('token');
       
-      if (!token || !userStr) {
+      if (!token) {
         router.push('/login');
         return;
       }
 
       try {
         // Check token expiration
-        const decoded = jwtDecode<DecodedToken>(token);
+        const decoded = jwtDecode<DecodedToken>(token as string);
         if (decoded.exp * 1000 < Date.now()) {
-          localStorage.removeItem('token');
-          localStorage.removeItem('user');
           router.push('/login');
           return;
         }
-
-        const user = JSON.parse(userStr);
         
-        if (!allowedRoles.includes(user.role)) {
+        if (!allowedRoles.includes(decoded.role)) {
           router.push('/');
           return;
         }
@@ -49,8 +47,6 @@ export default function ProtectedRoute({ children, allowedRoles = ['traveler'] }
         setIsLoading(false);
       } catch (error) {
         console.error('Auth check error:', error);
-        localStorage.removeItem('token');
-        localStorage.removeItem('user');
         router.push('/login');
         return;
       }

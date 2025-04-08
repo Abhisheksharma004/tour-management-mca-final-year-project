@@ -3,7 +3,9 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { setCookie } from 'cookies-next';
 import Image from 'next/image';
+import { FaUser, FaLock } from 'react-icons/fa';
 
 export default function LoginPage() {
   const router = useRouter();
@@ -11,28 +13,21 @@ export default function LoginPage() {
     email: '',
     password: '',
   });
-  const [error, setError] = useState('');
-  const [success, setSuccess] = useState('');
   const [loading, setLoading] = useState(false);
-  const [debug, setDebug] = useState('');
-
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setFormData({
-      ...formData,
-      [e.target.name]: e.target.value,
-    });
-  };
+  const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState<string | null>(null);
+  const [debug, setDebug] = useState<string>('');
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError('');
-    setSuccess('');
-    setDebug('');
     setLoading(true);
+    setError(null);
+    setSuccess(null);
+    setDebug('');
 
     try {
       setDebug('Sending login request to direct-login endpoint...');
-      
+
       const response = await fetch('/api/auth/direct-login', {
         method: 'POST',
         headers: {
@@ -51,20 +46,26 @@ export default function LoginPage() {
 
       setSuccess('Login successful! Redirecting to dashboard...');
 
-      // Store token in localStorage
-      localStorage.setItem('token', data.token);
-      localStorage.setItem('user', JSON.stringify(data.user));
+      // Store token in cookie
+      setCookie('token', data.token, {
+        maxAge: 30 * 24 * 60 * 60, // 30 days
+        path: '/',
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'lax'
+      });
 
-      // Redirect based on role
-      setTimeout(() => {
-        if (data.user.role === 'traveler') {
-          router.push('/traveler/dashboard');
-        } else if (data.user.role === 'admin') {
-          router.push('/admin/dashboard');
-        } else {
-          router.push('/');
-        }
-      }, 1500);
+      // Store user information in localStorage for menu access
+      localStorage.setItem('user', JSON.stringify(data.user));
+      localStorage.setItem('isLoggedIn', 'true');
+
+      // Show dashboard in menu by setting a flag
+      if (typeof window !== 'undefined') {
+        // We use this event to notify other components that the user has logged in
+        window.dispatchEvent(new Event('userLoggedIn'));
+      }
+
+      // Redirect to dashboard immediately
+      router.push('/dashboard');
     } catch (error) {
       console.error('Login error:', error);
       setError(error instanceof Error ? error.message : 'Failed to login');
@@ -75,135 +76,110 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-900 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
-      <div className="sm:mx-auto sm:w-full sm:max-w-md">
-        <div className="relative w-20 h-20 mx-auto">
-          <Image
-            src="/logo.png"
-            alt="Logo"
-            fill
-            className="object-contain"
-            priority
-          />
+    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
+      <div className="max-w-md w-full space-y-8 bg-white/10 backdrop-blur-lg p-8 rounded-2xl shadow-2xl">
+        <div className="text-center">
+          <div className="flex justify-center items-center space-x-3">
+            <div className="bg-orange-500 p-3 rounded-full">
+              <FaUser className="h-8 w-8 text-white" />
+            </div>
+          </div>
+          <h2 className="mt-6 text-3xl font-extrabold text-white tracking-tight">
+            Welcome back
+          </h2>
+          <p className="mt-2 text-sm text-gray-300">
+            Don't have an account?{' '}
+            <Link href="/signup" className="font-medium text-orange-400 hover:text-orange-300 transition-colors">
+              Sign up now
+            </Link>
+          </p>
         </div>
-        <h2 className="mt-6 text-center text-3xl font-extrabold text-white">
-          Sign in to your account
-        </h2>
-        <p className="mt-2 text-center text-sm text-gray-400">
-          Or{' '}
-          <Link
-            href="/register"
-            className="font-medium text-orange-500 hover:text-orange-400"
-          >
-            create a new account
-          </Link>
-        </p>
-      </div>
 
-      <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
-        <div className="bg-gray-800 py-8 px-4 shadow sm:rounded-lg sm:px-10">
-          <form className="space-y-6" onSubmit={handleSubmit}>
-            {error && (
-              <div className="bg-red-500 text-white p-3 rounded-md text-sm">
-                {error}
-              </div>
-            )}
-            
-            {success && (
-              <div className="bg-green-500 text-white p-3 rounded-md text-sm">
-                {success}
-              </div>
-            )}
-            
+        <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
+          <div className="space-y-4">
             <div>
-              <label
-                htmlFor="email"
-                className="block text-sm font-medium text-gray-300"
-              >
+              <label htmlFor="email" className="block text-sm font-medium text-gray-300">
                 Email address
               </label>
-              <div className="mt-1">
-                <input
-                  id="email"
-                  name="email"
-                  type="email"
-                  autoComplete="email"
-                  required
-                  value={formData.email}
-                  onChange={handleChange}
-                  className="appearance-none block w-full px-3 py-2 border border-gray-700 rounded-md shadow-sm placeholder-gray-500 bg-gray-700 text-white focus:outline-none focus:ring-orange-500 focus:border-orange-500 sm:text-sm"
-                />
-              </div>
+              <input
+                id="email"
+                name="email"
+                type="email"
+                autoComplete="email"
+                required
+                className="mt-1 block w-full px-4 py-3 bg-gray-800/50 border border-gray-700 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-all"
+                placeholder="Enter your email"
+                value={formData.email}
+                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+              />
             </div>
-
             <div>
-              <label
-                htmlFor="password"
-                className="block text-sm font-medium text-gray-300"
-              >
+              <label htmlFor="password" className="block text-sm font-medium text-gray-300">
                 Password
               </label>
-              <div className="mt-1">
-                <input
-                  id="password"
-                  name="password"
-                  type="password"
-                  autoComplete="current-password"
-                  required
-                  value={formData.password}
-                  onChange={handleChange}
-                  className="appearance-none block w-full px-3 py-2 border border-gray-700 rounded-md shadow-sm placeholder-gray-500 bg-gray-700 text-white focus:outline-none focus:ring-orange-500 focus:border-orange-500 sm:text-sm"
-                />
-              </div>
+              <input
+                id="password"
+                name="password"
+                type="password"
+                autoComplete="current-password"
+                required
+                className="mt-1 block w-full px-4 py-3 bg-gray-800/50 border border-gray-700 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-all"
+                placeholder="Enter your password"
+                value={formData.password}
+                onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+              />
             </div>
+          </div>
 
-            <div className="flex items-center justify-between">
-              <div className="flex items-center">
-                <input
-                  id="remember-me"
-                  name="remember-me"
-                  type="checkbox"
-                  className="h-4 w-4 text-orange-500 focus:ring-orange-500 border-gray-700 rounded bg-gray-700"
-                />
-                <label
-                  htmlFor="remember-me"
-                  className="ml-2 block text-sm text-gray-300"
-                >
-                  Remember me
-                </label>
-              </div>
-
-              <div className="text-sm">
-                <Link
-                  href="/forgot-password"
-                  className="font-medium text-orange-500 hover:text-orange-400"
-                >
-                  Forgot your password?
-                </Link>
-              </div>
-            </div>
-
-            <div>
-              <button
-                type="submit"
-                disabled={loading}
-                className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-orange-600 hover:bg-orange-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-orange-500 disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {loading ? 'Signing in...' : 'Sign in'}
-              </button>
-            </div>
-          </form>
-
-          {/* Debug panel */}
-          {debug && (
-            <div className="mt-6 p-3 border border-gray-700 rounded-md bg-gray-900">
-              <h3 className="text-sm font-medium text-gray-300 mb-2">Debug Info:</h3>
-              <pre className="text-xs text-gray-400 whitespace-pre-wrap break-words">
-                {debug}
-              </pre>
+          {error && (
+            <div className="bg-red-500/10 border border-red-500/20 text-red-400 px-4 py-3 rounded-lg" role="alert">
+              <span className="block sm:inline">{error}</span>
             </div>
           )}
-        </div>
+
+          {success && (
+            <div className="bg-green-500/10 border border-green-500/20 text-green-400 px-4 py-3 rounded-lg" role="alert">
+              <span className="block sm:inline">{success}</span>
+            </div>
+          )}
+
+          {debug && process.env.NODE_ENV === 'development' && (
+            <pre className="bg-gray-800/50 text-gray-300 p-4 rounded-lg text-xs overflow-auto">
+              {debug}
+            </pre>
+          )}
+
+          <div>
+            <button
+              type="submit"
+              disabled={loading}
+              className={`group relative w-full flex justify-center py-3 px-4 border border-transparent text-sm font-medium rounded-lg text-white ${loading
+                  ? 'bg-orange-500/50 cursor-not-allowed'
+                  : 'bg-orange-500 hover:bg-orange-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-orange-500 transition-all'
+                }`}
+            >
+              {loading ? (
+                <span className="absolute left-0 inset-y-0 flex items-center pl-3">
+                  <svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                </span>
+              ) : null}
+              {loading ? 'Signing in...' : 'Sign in to your account'}
+            </button>
+          </div>
+
+          <div className="flex items-center justify-center mt-4">
+            <Link
+              href="/forgot-password"
+              className="flex items-center text-sm font-medium text-orange-400 hover:text-orange-300 transition-colors"
+            >
+              <FaLock className="mr-2 h-4 w-4" />
+              Forgot your password?
+            </Link>
+          </div>
+        </form>
       </div>
     </div>
   );

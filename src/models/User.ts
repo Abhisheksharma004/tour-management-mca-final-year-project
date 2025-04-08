@@ -1,30 +1,36 @@
 import mongoose from 'mongoose';
 import bcrypt from 'bcryptjs';
 
-const UserSchema = new mongoose.Schema({
+// Define the user schema
+const userSchema = new mongoose.Schema({
   name: {
     type: String,
-    required: [true, 'Please provide a name'],
+    required: [true, 'Name is required'],
+    trim: true
   },
   email: {
     type: String,
-    required: [true, 'Please provide an email'],
+    required: [true, 'Email is required'],
     unique: true,
+    trim: true,
     lowercase: true,
+    match: [/^\w+([.-]?\w+)*@\w+([.-]?\w+)*(\.\w{2,3})+$/, 'Please enter a valid email']
   },
   password: {
     type: String,
-    required: [true, 'Please provide a password'],
-    minlength: 6,
+    required: [true, 'Password is required'],
+    minlength: [8, 'Password must be at least 8 characters long']
   },
   role: {
     type: String,
-    enum: ['traveler', 'admin'],
-    default: 'traveler',
+    enum: ['traveler', 'guide'],
+    default: 'traveler'
   },
   avatar: {
     type: String,
-    default: 'https://ui-avatars.com/api/?name=User&background=random',
+    default: function() {
+      return `https://ui-avatars.com/api/?name=${encodeURIComponent(this.name)}&background=random`;
+    }
   },
   phone: {
     type: String,
@@ -34,25 +40,35 @@ const UserSchema = new mongoose.Schema({
   },
   createdAt: {
     type: Date,
-    default: Date.now,
+    default: Date.now
   },
   updatedAt: {
     type: Date,
-    default: Date.now,
-  },
+    default: Date.now
+  }
+}, {
+  timestamps: true
 });
 
-// Method to compare password
-UserSchema.methods.matchPassword = async function(enteredPassword: string) {
+// Hash password before saving
+userSchema.pre('save', async function(next) {
+  if (!this.isModified('password')) return next();
+  
   try {
-    return await bcrypt.compare(enteredPassword, this.password);
+    const salt = await bcrypt.genSalt(10);
+    this.password = await bcrypt.hash(this.password, salt);
+    next();
   } catch (error) {
-    console.error('Password comparison error:', error);
-    return false;
+    next(error as Error);
   }
+});
+
+// Method to compare passwords
+userSchema.methods.comparePassword = async function(candidatePassword: string): Promise<boolean> {
+  return bcrypt.compare(candidatePassword, this.password);
 };
 
-// Check if the model already exists before creating a new one
-const User = mongoose.models.User || mongoose.model('User', UserSchema);
+// Create and export the model
+const User = mongoose.models.User || mongoose.model('User', userSchema);
 
 export default User; 

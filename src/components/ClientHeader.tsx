@@ -1,14 +1,84 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import TransitionLink from './TransitionLink';
+import { getCookie, deleteCookie } from 'cookies-next';
+import { jwtDecode } from 'jwt-decode';
+import { useRouter } from 'next/navigation';
+
+interface DecodedToken {
+  id: string;
+  exp: number;
+  iat: number;
+  role: string;
+  name: string;
+}
 
 export default function ClientHeader() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [userRole, setUserRole] = useState<string | null>(null);
+  const [userName, setUserName] = useState<string | null>(null);
+  const router = useRouter();
+  
+  useEffect(() => {
+    // Check if user is logged in using cookies
+    const token = getCookie('token');
+    
+    if (token) {
+      try {
+        // Check token expiration
+        const decoded = jwtDecode<DecodedToken>(token as string);
+        if (decoded.exp * 1000 > Date.now()) {
+          setIsLoggedIn(true);
+          setUserRole(decoded.role);
+          setUserName(decoded.name);
+        } else {
+          // Token expired
+          setIsLoggedIn(false);
+          setUserRole(null);
+          setUserName(null);
+        }
+      } catch (error) {
+        console.error('Error decoding token:', error);
+        setIsLoggedIn(false);
+        setUserRole(null);
+        setUserName(null);
+      }
+    } else {
+      setIsLoggedIn(false);
+      setUserRole(null);
+      setUserName(null);
+    }
+  }, []);
   
   const toggleMobileMenu = () => {
     setMobileMenuOpen(!mobileMenuOpen);
+  };
+
+  const handleLogout = () => {
+    deleteCookie('token');
+    setIsLoggedIn(false);
+    setUserRole(null);
+    setUserName(null);
+    router.push('/');
+  };
+
+  // Function to render dashboard link for logged-in users
+  const renderDashboardLink = (className: string, onClick?: () => void) => {
+    if (isLoggedIn) {
+      return (
+        <TransitionLink 
+          href={userRole === 'traveler' ? '/traveler/dashboard' : '/guide-dashboard'} 
+          className={className}
+          onClick={onClick}
+        >
+          Dashboard
+        </TransitionLink>
+      );
+    }
+    return null;
   };
 
   return (
@@ -43,19 +113,28 @@ export default function ClientHeader() {
             <TransitionLink href="/guides/join" className="px-3 py-2 rounded-md text-sm font-medium text-gray-300 hover:bg-gray-700 hover:text-white">
               Become a Guide
             </TransitionLink>
-            <TransitionLink href="/dashboard" className="px-3 py-2 rounded-md text-sm font-medium text-gray-300 hover:bg-gray-700 hover:text-white">
-              Dashboard
-            </TransitionLink>
+            {renderDashboardLink("px-3 py-2 rounded-md text-sm font-medium text-gray-300 hover:bg-gray-700 hover:text-white")}
           </nav>
 
           {/* Login and Signup buttons - Desktop */}
           <div className="hidden md:flex md:items-center">
-            <TransitionLink href="/login" className="ml-2 px-4 py-2 text-sm text-orange-400 font-medium rounded-md hover:bg-gray-700">
-              Login
-            </TransitionLink>
-            <TransitionLink href="/signup" className="ml-2 px-4 py-2 text-sm bg-orange-600 text-white font-medium rounded-md hover:bg-orange-700">
-              Sign Up
-            </TransitionLink>
+            {!isLoggedIn ? (
+              <>
+                <TransitionLink href="/login" className="ml-2 px-4 py-2 text-sm text-orange-400 font-medium rounded-md hover:bg-gray-700">
+                  Login
+                </TransitionLink>
+                <TransitionLink href="/signup" className="ml-2 px-4 py-2 text-sm bg-orange-600 text-white font-medium rounded-md hover:bg-orange-700">
+                  Sign Up
+                </TransitionLink>
+              </>
+            ) : (
+              <button
+                onClick={handleLogout}
+                className="ml-2 px-4 py-2 text-sm bg-orange-600 text-white font-medium rounded-md hover:bg-orange-700"
+              >
+                Logout
+              </button>
+            )}
           </div>
 
           {/* Mobile menu button */}
@@ -111,30 +190,41 @@ export default function ClientHeader() {
             >
               Become a Guide
             </TransitionLink>
-            <TransitionLink 
-              href="/dashboard" 
-              className="block px-3 py-2 rounded-md text-base font-medium text-gray-300 hover:bg-gray-700 hover:text-white"
-              onClick={() => setMobileMenuOpen(false)}
-            >
-              Dashboard
-            </TransitionLink>
+            {renderDashboardLink(
+              "block px-3 py-2 rounded-md text-base font-medium text-gray-300 hover:bg-gray-700 hover:text-white",
+              () => setMobileMenuOpen(false)
+            )}
           </div>
           <div className="pt-4 pb-3 border-t border-gray-700">
             <div className="flex items-center justify-center space-x-3 px-5">
-              <TransitionLink 
-                href="/login" 
-                className="w-full px-4 py-2 text-center text-sm text-orange-400 font-medium rounded-md border border-orange-400 hover:bg-gray-700"
-                onClick={() => setMobileMenuOpen(false)}
-              >
-                Login
-              </TransitionLink>
-              <TransitionLink 
-                href="/signup" 
-                className="w-full px-4 py-2 text-center text-sm bg-orange-600 text-white font-medium rounded-md hover:bg-orange-700"
-                onClick={() => setMobileMenuOpen(false)}
-              >
-                Sign Up
-              </TransitionLink>
+              {!isLoggedIn ? (
+                <>
+                  <TransitionLink 
+                    href="/login" 
+                    className="w-full px-4 py-2 text-center text-sm text-orange-400 font-medium rounded-md border border-orange-400 hover:bg-gray-700"
+                    onClick={() => setMobileMenuOpen(false)}
+                  >
+                    Login
+                  </TransitionLink>
+                  <TransitionLink 
+                    href="/signup" 
+                    className="w-full px-4 py-2 text-center text-sm bg-orange-600 text-white font-medium rounded-md hover:bg-orange-700"
+                    onClick={() => setMobileMenuOpen(false)}
+                  >
+                    Sign Up
+                  </TransitionLink>
+                </>
+              ) : (
+                <button
+                  onClick={() => {
+                    handleLogout();
+                    setMobileMenuOpen(false);
+                  }}
+                  className="w-full px-4 py-2 text-center text-sm bg-orange-600 text-white font-medium rounded-md hover:bg-orange-700"
+                >
+                  Logout
+                </button>
+              )}
             </div>
           </div>
         </div>
