@@ -1,427 +1,348 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { 
-  FaCalendarAlt, 
-  FaUser, 
-  FaStar, 
-  FaWallet, 
-  FaMapMarkerAlt, 
-  FaMapMarkedAlt, 
-  FaClock, 
-  FaUsers,
-  FaChevronRight,
-  FaListAlt,
-  FaEnvelope,
-  FaEye
+  FaStar, FaUsers, FaMoneyBillWave, FaCalendarAlt, 
+  FaMapMarkerAlt, FaClock, FaEye, FaChevronRight,
+  FaMapMarkedAlt, FaChartLine, FaBell
 } from 'react-icons/fa';
-import DateDisplay from '@/components/DateDisplay';
+import { Line } from 'react-chartjs-2';
+import {
+  Chart as ChartJS,
+  CategoryScale,
+  LinearScale,
+  PointElement,
+  LineElement,
+  Title,
+  Tooltip,
+  Legend
+} from 'chart.js';
 
-// Sample data for dashboard
-const upcomingTours = [
-  {
-    id: 'T001',
-    name: 'Old Delhi Heritage Tour',
-    date: '2024-05-15',
-    time: '09:00',
-    duration: '4 hours',
-    location: 'Delhi, India',
-    participants: 2,
-    customer: {
-      name: 'Rahul Sharma',
-      image: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e'
-    }
-  },
-  {
-    id: 'T002',
-    name: 'Mumbai Heritage Walk',
-    date: '2024-05-20',
-    time: '10:00',
-    duration: '3 hours',
-    location: 'Mumbai, India',
-    participants: 4,
-    customer: {
-      name: 'Aditya Patel',
-      image: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d'
-    }
-  },
-  {
-    id: 'T003',
-    name: 'Cultural Food Tour',
-    date: '2024-05-25',
-    time: '18:00',
-    duration: '3 hours',
-    location: 'Mumbai, India',
-    participants: 2,
-    customer: {
-      name: 'Priya Kapoor',
-      image: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2'
-    }
-  }
-];
+ChartJS.register(
+  CategoryScale,
+  LinearScale,
+  PointElement,
+  LineElement,
+  Title,
+  Tooltip,
+  Legend
+);
 
-const recentBookings = [
-  {
-    id: 'B001',
-    tourName: 'City Highlights Tour',
-    date: '2024-04-28',
-    customer: 'Vikash Gupta',
-    participants: 3,
-    amount: 3600,
-    status: 'Confirmed'
-  },
-  {
-    id: 'B002',
-    tourName: 'Street Food Adventure',
-    date: '2024-04-30',
-    customer: 'Meera Shah',
-    participants: 2,
-    amount: 2400,
-    status: 'Pending'
-  },
-  {
-    id: 'B003',
-    tourName: 'Historical Monuments Tour',
-    date: '2024-05-02',
-    customer: 'Raj Malhotra',
-    participants: 1,
-    amount: 1500,
-    status: 'Confirmed'
-  }
-];
-
-const unreadMessages = [
-  {
-    id: 'M001',
-    from: 'Rahul Sharma',
-    avatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e',
-    message: 'Hi, looking forward to our tour! Can we meet 10 minutes early?',
-    time: '2 hours ago'
-  },
-  {
-    id: 'M002',
-    from: 'Priya Kapoor',
-    avatar: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2',
-    message: 'Is the tour still on if it rains tomorrow?',
-    time: '5 hours ago'
-  }
-];
-
-// Monthly earnings data
-const monthlyEarnings = [
-  { month: 'Jan', amount: 32500 },
-  { month: 'Feb', amount: 28000 },
-  { month: 'Mar', amount: 35000 },
-  { month: 'Apr', amount: 42000 },
-  { month: 'May', amount: 45620 },
-  { month: 'Jun', amount: 0 },
-  { month: 'Jul', amount: 0 },
-  { month: 'Aug', amount: 0 },
-  { month: 'Sep', amount: 0 },
-  { month: 'Oct', amount: 0 },
-  { month: 'Nov', amount: 0 },
-  { month: 'Dec', amount: 0 }
-];
+interface GuideDashboardData {
+  guide: {
+    _id: string;
+    name: string;
+    email: string;
+    avatar?: string;
+    rating?: number;
+    totalTours?: number;
+    totalBookings?: number;
+    totalEarnings?: number;
+  };
+  upcomingTours: Array<{
+    _id: string;
+    title: string;
+    date: string;
+    location: string;
+    price: number;
+    status: string;
+    bookings: number;
+  }>;
+  recentBookings: Array<{
+    _id: string;
+    tourId: string;
+    tourTitle: string;
+    customerName: string;
+    date: string;
+    status: string;
+    amount: number;
+  }>;
+  analytics: {
+    totalTours: number;
+    totalBookings: number;
+    totalEarnings: number;
+    averageRating: number;
+    monthlyStats: Array<{
+      month: string;
+      bookings: number;
+      earnings: number;
+    }>;
+  };
+}
 
 export default function GuideDashboard() {
+  const [data, setData] = useState<GuideDashboardData | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState('upcoming');
-  
+
+  useEffect(() => {
+    const fetchDashboardData = async () => {
+      try {
+        const response = await fetch('/api/dashboard/guide-dashboard');
+        if (!response.ok) {
+          throw new Error('Failed to fetch dashboard data');
+        }
+        const dashboardData = await response.json();
+        setData(dashboardData);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'An error occurred');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchDashboardData();
+  }, []);
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-full">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-orange-500"></div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex items-center justify-center h-full">
+        <div className="text-red-500">{error}</div>
+      </div>
+    );
+  }
+
+  if (!data) {
+    return null;
+  }
+
+  const chartData = {
+    labels: data.analytics.monthlyStats.map(stat => stat.month),
+    datasets: [
+      {
+        label: 'Bookings',
+        data: data.analytics.monthlyStats.map(stat => stat.bookings),
+        borderColor: 'rgb(249, 115, 22)',
+        backgroundColor: 'rgba(249, 115, 22, 0.5)',
+      },
+      {
+        label: 'Earnings',
+        data: data.analytics.monthlyStats.map(stat => stat.earnings),
+        borderColor: 'rgb(16, 185, 129)',
+        backgroundColor: 'rgba(16, 185, 129, 0.5)',
+      },
+    ],
+  };
+
+  const chartOptions = {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: {
+        position: 'top' as const,
+        labels: {
+          color: '#fff',
+          font: {
+            size: 12
+          }
+        }
+      },
+      title: {
+        display: true,
+        text: 'Monthly Performance',
+        color: '#fff',
+        font: {
+          size: 16
+        }
+      },
+    },
+    scales: {
+      y: {
+        ticks: {
+          color: '#9CA3AF'
+        },
+        grid: {
+          color: 'rgba(75, 85, 99, 0.3)'
+        }
+      },
+      x: {
+        ticks: {
+          color: '#9CA3AF'
+        },
+        grid: {
+          color: 'rgba(75, 85, 99, 0.3)'
+        }
+      }
+    }
+  };
+
   return (
-    <div>
-      <div className="flex flex-col sm:flex-row items-start justify-between mb-6">
+    <div className="space-y-6">
+      {/* Welcome Section */}
+      <div className="flex flex-col sm:flex-row items-start justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-white">Welcome Back, Raj!</h1>
+          <h1 className="text-2xl font-bold text-white">Welcome Back, {data.guide.name}!</h1>
           <p className="text-gray-400 mt-1">Here's what's happening with your tours today</p>
         </div>
-        <div className="mt-4 sm:mt-0">
+        <div className="mt-4 sm:mt-0 flex items-center space-x-4">
+          <button className="relative text-gray-300 hover:text-white transition-colors">
+            <FaBell size={20} />
+            <span className="absolute -top-1 -right-1 bg-orange-500 text-white text-xs rounded-full w-4 h-4 flex items-center justify-center">
+              3
+            </span>
+          </button>
           <Link 
-            href="/guide-dashboard/tours/new" 
-            className="px-4 py-2 bg-orange-600 text-white rounded-md hover:bg-orange-700 transition shadow-lg shadow-orange-600/20 flex items-center text-sm"
+            href="/guide-dashboard/profile" 
+            className="flex items-center space-x-2 text-gray-300 hover:text-white transition-colors"
           >
-            <FaMapMarkedAlt className="mr-2" />
-            Create New Tour
+            <div className="relative w-8 h-8 rounded-full overflow-hidden border-2 border-orange-500">
+              <Image 
+                src={data.guide.avatar || "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e"} 
+                alt={data.guide.name} 
+                fill 
+                sizes="32px"
+                className="object-cover"
+              />
+            </div>
+            <span className="text-sm font-medium">{data.guide.name}</span>
           </Link>
         </div>
       </div>
-      
+
       {/* Stats Overview */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-        <div className="bg-gray-800 rounded-lg p-4 border border-gray-700 shadow-lg">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div className="bg-gray-800 p-6 rounded-lg border border-gray-700 hover:border-orange-500 transition-colors">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-gray-400 text-xs mb-1">Today's Tours</p>
-              <p className="text-2xl font-bold text-white">2</p>
+              <p className="text-gray-400">Total Tours</p>
+              <p className="text-2xl font-bold text-white">{data.analytics.totalTours}</p>
             </div>
-            <div className="w-10 h-10 rounded-full bg-blue-500/20 flex items-center justify-center">
-              <FaCalendarAlt className="text-blue-400" />
+            <div className="w-12 h-12 rounded-full bg-orange-500/20 flex items-center justify-center">
+              <FaMapMarkedAlt className="text-orange-500 text-xl" />
             </div>
           </div>
-          <p className="text-xs text-gray-400 mt-2">Next: Old Delhi Heritage (9:00 AM)</p>
         </div>
-        
-        <div className="bg-gray-800 rounded-lg p-4 border border-gray-700 shadow-lg">
+        <div className="bg-gray-800 p-6 rounded-lg border border-gray-700 hover:border-orange-500 transition-colors">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-gray-400 text-xs mb-1">Upcoming Bookings</p>
-              <p className="text-2xl font-bold text-white">8</p>
+              <p className="text-gray-400">Total Bookings</p>
+              <p className="text-2xl font-bold text-white">{data.analytics.totalBookings}</p>
             </div>
-            <div className="w-10 h-10 rounded-full bg-green-500/20 flex items-center justify-center">
-              <FaUsers className="text-green-400" />
+            <div className="w-12 h-12 rounded-full bg-orange-500/20 flex items-center justify-center">
+              <FaUsers className="text-orange-500 text-xl" />
             </div>
           </div>
-          <p className="text-xs text-gray-400 mt-2">3 new bookings this week</p>
         </div>
-        
-        <div className="bg-gray-800 rounded-lg p-4 border border-gray-700 shadow-lg">
+        <div className="bg-gray-800 p-6 rounded-lg border border-gray-700 hover:border-orange-500 transition-colors">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-gray-400 text-xs mb-1">Rating</p>
+              <p className="text-gray-400">Total Earnings</p>
+              <p className="text-2xl font-bold text-white">₹{data.analytics.totalEarnings.toLocaleString()}</p>
+            </div>
+            <div className="w-12 h-12 rounded-full bg-orange-500/20 flex items-center justify-center">
+              <FaMoneyBillWave className="text-orange-500 text-xl" />
+            </div>
+          </div>
+        </div>
+        <div className="bg-gray-800 p-6 rounded-lg border border-gray-700 hover:border-orange-500 transition-colors">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-gray-400">Average Rating</p>
               <div className="flex items-center">
-                <p className="text-2xl font-bold text-white mr-1">4.8</p>
+                <p className="text-2xl font-bold text-white mr-2">{data.analytics.averageRating.toFixed(1)}</p>
                 <FaStar className="text-yellow-500" />
               </div>
             </div>
-            <div className="w-10 h-10 rounded-full bg-yellow-500/20 flex items-center justify-center">
-              <FaStar className="text-yellow-400" />
+            <div className="w-12 h-12 rounded-full bg-orange-500/20 flex items-center justify-center">
+              <FaStar className="text-orange-500 text-xl" />
             </div>
           </div>
-          <p className="text-xs text-gray-400 mt-2">Based on 127 reviews</p>
-        </div>
-        
-        <div className="bg-gray-800 rounded-lg p-4 border border-gray-700 shadow-lg">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-gray-400 text-xs mb-1">This Month</p>
-              <p className="text-2xl font-bold text-white">₹45,620</p>
-            </div>
-            <div className="w-10 h-10 rounded-full bg-orange-500/20 flex items-center justify-center">
-              <FaWallet className="text-orange-400" />
-            </div>
-          </div>
-          <p className="text-xs text-green-400 mt-2">+8.5% from last month</p>
         </div>
       </div>
-      
-      {/* Upcoming Tours & Earnings */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
-        <div className="lg:col-span-2">
-          <div className="bg-gray-800 rounded-lg border border-gray-700 shadow-lg overflow-hidden">
-            <div className="flex flex-wrap border-b border-gray-700">
-              <button 
-                onClick={() => setActiveTab('upcoming')}
-                className={`flex-1 min-w-[120px] py-3 text-center text-sm font-medium ${activeTab === 'upcoming' ? 'text-orange-500 border-b-2 border-orange-500' : 'text-gray-400 hover:text-white'}`}
-              >
-                Upcoming Tours
-              </button>
-              <button 
-                onClick={() => setActiveTab('bookings')}
-                className={`flex-1 min-w-[120px] py-3 text-center text-sm font-medium ${activeTab === 'bookings' ? 'text-orange-500 border-b-2 border-orange-500' : 'text-gray-400 hover:text-white'}`}
-              >
-                Recent Bookings
-              </button>
-              <button 
-                onClick={() => setActiveTab('messages')}
-                className={`flex-1 min-w-[120px] py-3 text-center text-sm font-medium ${activeTab === 'messages' ? 'text-orange-500 border-b-2 border-orange-500' : 'text-gray-400 hover:text-white'}`}
-              >
-                Unread Messages
-              </button>
-            </div>
-            
-            <div className="p-4">
-              {activeTab === 'upcoming' && (
-                <div>
-                  {upcomingTours.map((tour) => (
-                    <div key={tour.id} className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-3 mb-3 bg-gray-700/50 rounded-lg hover:bg-gray-700 transition">
-                      <div className="flex items-center mb-3 sm:mb-0 w-full sm:w-auto">
-                        <div className="relative w-10 h-10 rounded-lg overflow-hidden mr-3 border border-gray-600 flex-shrink-0">
-                          <Image 
-                            src={tour.customer.image} 
-                            alt={tour.customer.name} 
-                            fill 
-                            sizes="40px"
-                            className="object-cover"
-                            priority
-                          />
-                        </div>
-                        <div className="min-w-0">
-                          <h3 className="font-medium text-white truncate">{tour.name}</h3>
-                          <div className="flex items-center text-xs text-gray-400">
-                            <FaMapMarkerAlt className="mr-1 flex-shrink-0" size={10} />
-                            <span className="truncate">{tour.location}</span>
-                          </div>
-                        </div>
-                      </div>
-                      <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
-                        <div className="text-xs text-gray-400 flex items-center mr-3">
-                          <FaCalendarAlt className="mr-1 flex-shrink-0" size={10} />
-                          <DateDisplay date={tour.date} className="text-xs" />
-                        </div>
-                        <div className="text-xs text-gray-400 flex items-center mr-3">
-                          <FaClock className="mr-1 flex-shrink-0" size={10} />
-                          {tour.time}
-                        </div>
-                        <div className="text-xs text-gray-400 flex items-center mr-3">
-                          <FaUsers className="mr-1 flex-shrink-0" size={10} />
-                          {tour.participants} people
-                        </div>
-                        <Link href={`/guide-dashboard/tours/${tour.id}`} className="text-xs bg-gray-700 text-orange-400 hover:bg-gray-600 rounded-md px-2 py-1 flex items-center">
-                          <FaEye className="mr-1 flex-shrink-0" size={10} />
-                          View
-                        </Link>
-                      </div>
-                    </div>
-                  ))}
-                  <Link href="/guide-dashboard/tours" className="text-sm text-orange-500 hover:text-orange-400 flex items-center justify-center mt-3">
-                    View All Tours <FaChevronRight className="ml-1" size={12} />
-                  </Link>
-                </div>
-              )}
-              
-              {activeTab === 'bookings' && (
-                <div>
-                  {recentBookings.map((booking) => (
-                    <div key={booking.id} className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-3 mb-3 bg-gray-700/50 rounded-lg hover:bg-gray-700 transition">
-                      <div className="mb-3 sm:mb-0 w-full sm:w-auto">
-                        <h3 className="font-medium text-white truncate">{booking.tourName}</h3>
-                        <div className="flex items-center text-xs text-gray-400">
-                          <span className="mr-2">#{booking.id}</span> • 
-                          <span className="ml-2 truncate">{booking.customer} ({booking.participants} people)</span>
-                        </div>
-                      </div>
-                      <div className="flex items-center w-full sm:w-auto justify-between sm:justify-end">
-                        <div className="mr-3 text-right">
-                          <div className="text-white font-medium">₹{booking.amount.toLocaleString()}</div>
-                          <div className="text-xs text-gray-400">
-                            <DateDisplay date={booking.date} className="text-xs" />
-                          </div>
-                        </div>
-                        <span className={`px-2 py-1 rounded-full text-xs ${
-                          booking.status === 'Confirmed' ? 'bg-green-900/60 text-green-300 border border-green-700' : 
-                          'bg-yellow-900/60 text-yellow-300 border border-yellow-700'
-                        }`}>
-                          {booking.status}
-                        </span>
-                      </div>
-                    </div>
-                  ))}
-                  <Link href="/guide-dashboard/bookings" className="text-sm text-orange-500 hover:text-orange-400 flex items-center justify-center mt-3">
-                    View All Bookings <FaChevronRight className="ml-1" size={12} />
-                  </Link>
-                </div>
-              )}
-              
-              {activeTab === 'messages' && (
-                <div>
-                  {unreadMessages.map((message) => (
-                    <div key={message.id} className="flex items-start p-3 mb-3 bg-gray-700/50 rounded-lg hover:bg-gray-700 transition">
-                      <div className="relative w-10 h-10 rounded-full overflow-hidden mr-3 border border-gray-600 flex-shrink-0">
-                        <Image 
-                          src={message.avatar} 
-                          alt={message.from} 
-                          fill 
-                          sizes="40px"
-                          className="object-cover"
-                          priority
-                        />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex justify-between flex-wrap">
-                          <h3 className="font-medium text-white truncate mr-2">{message.from}</h3>
-                          <span className="text-xs text-gray-400">{message.time}</span>
-                        </div>
-                        <p className="text-sm text-gray-300 mt-1 break-words">{message.message}</p>
-                      </div>
-                    </div>
-                  ))}
-                  <Link href="/guide-dashboard/messages" className="text-sm text-orange-500 hover:text-orange-400 flex items-center justify-center mt-3">
-                    View All Messages <FaChevronRight className="ml-1" size={12} />
-                  </Link>
-                </div>
-              )}
-            </div>
+
+      {/* Charts and Upcoming Tours */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="bg-gray-800 p-6 rounded-lg border border-gray-700">
+          <div className="h-80">
+            <Line data={chartData} options={chartOptions} />
           </div>
         </div>
-        
-        {/* Earnings Chart */}
-        <div className="bg-gray-800 rounded-lg border border-gray-700 shadow-lg overflow-hidden">
-          <div className="p-4 border-b border-gray-700">
-            <h2 className="text-lg font-medium text-white">Earnings Overview</h2>
-          </div>
-          <div className="p-4">
-            <div className="mb-4">
-              <div className="flex justify-between items-center mb-2">
-                <span className="text-sm text-gray-400">Total Earnings (2024)</span>
-                <span className="text-white font-medium">₹183,120</span>
-              </div>
-              <div className="h-2 bg-gray-700 rounded-full overflow-hidden">
-                <div className="h-full bg-gradient-to-r from-orange-600 to-orange-400 w-5/12"></div>
-              </div>
-              <div className="flex justify-between text-xs text-gray-500 mt-1">
-                <span>Target: ₹450,000</span>
-                <span>41% achieved</span>
-              </div>
-            </div>
-            
-            <div className="flex h-40 items-end space-x-2 mt-6">
-              {monthlyEarnings.map((data, i) => (
-                <div key={i} className="flex-1 flex flex-col items-center">
-                  <div 
-                    className="w-full bg-gradient-to-t from-orange-600 to-orange-400 rounded-t hover:from-orange-500 hover:to-orange-300 transition-all group relative"
-                    style={{ height: `${data.amount > 0 ? (data.amount / 50000) * 100 : 0}%` }}
-                  >
-                    {data.amount > 0 && (
-                      <div className="absolute -top-8 left-1/2 transform -translate-x-1/2 bg-gray-700 text-white px-2 py-1 rounded text-xs opacity-0 group-hover:opacity-100 whitespace-nowrap">
-                        ₹{data.amount.toLocaleString()}
-                      </div>
-                    )}
-                  </div>
-                  <span className="text-xs text-gray-400 mt-1">{data.month}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-          <div className="border-t border-gray-700 p-3">
-            <Link href="/guide-dashboard/analytics" className="text-sm text-orange-500 hover:text-orange-400 flex items-center justify-center">
-              View Detailed Analytics <FaChevronRight className="ml-1" size={12} />
+        <div className="bg-gray-800 p-6 rounded-lg border border-gray-700">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-lg font-semibold text-white">Upcoming Tours</h3>
+            <Link 
+              href="/guide-dashboard/tours" 
+              className="text-sm text-orange-500 hover:text-orange-400 flex items-center"
+            >
+              View All <FaChevronRight className="ml-1" size={12} />
             </Link>
           </div>
+          <div className="space-y-4">
+            {data.upcomingTours.map((tour) => (
+              <div key={tour._id} className="flex items-center justify-between p-4 bg-gray-700/50 rounded-lg hover:bg-gray-700 transition-colors">
+                <div>
+                  <p className="font-medium text-white">{tour.title}</p>
+                  <div className="flex items-center text-sm text-gray-400 mt-1">
+                    <FaMapMarkerAlt className="mr-1" size={12} />
+                    <span>{tour.location}</span>
+                  </div>
+                </div>
+                <div className="text-right">
+                  <p className="text-white font-medium">₹{tour.price.toLocaleString()}</p>
+                  <div className="flex items-center text-sm text-gray-400 mt-1">
+                    <FaCalendarAlt className="mr-1" size={12} />
+                    <span>{new Date(tour.date).toLocaleDateString()}</span>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
       </div>
-      
-      {/* Quick Actions */}
-      <div className="bg-gray-800 rounded-lg border border-gray-700 shadow-lg p-4 mb-6">
-        <h2 className="text-lg font-medium text-white mb-3">Quick Actions</h2>
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-          <Link 
-            href="/guide-dashboard/tours/new" 
-            className="bg-gray-700 hover:bg-gray-600 p-3 rounded-lg flex flex-col items-center justify-center transition"
-          >
-            <FaMapMarkedAlt className="text-orange-500 text-xl mb-2" />
-            <span className="text-sm text-gray-200">New Tour</span>
-          </Link>
-          <Link 
-            href="/guide-dashboard/messages" 
-            className="bg-gray-700 hover:bg-gray-600 p-3 rounded-lg flex flex-col items-center justify-center transition"
-          >
-            <FaEnvelope className="text-orange-500 text-xl mb-2" />
-            <span className="text-sm text-gray-200">Messages</span>
-          </Link>
+
+      {/* Recent Bookings */}
+      <div className="bg-gray-800 p-6 rounded-lg border border-gray-700">
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-lg font-semibold text-white">Recent Bookings</h3>
           <Link 
             href="/guide-dashboard/bookings" 
-            className="bg-gray-700 hover:bg-gray-600 p-3 rounded-lg flex flex-col items-center justify-center transition"
+            className="text-sm text-orange-500 hover:text-orange-400 flex items-center"
           >
-            <FaListAlt className="text-orange-500 text-xl mb-2" />
-            <span className="text-sm text-gray-200">Bookings</span>
+            View All <FaChevronRight className="ml-1" size={12} />
           </Link>
-          <Link 
-            href="/guide-dashboard/profile" 
-            className="bg-gray-700 hover:bg-gray-600 p-3 rounded-lg flex flex-col items-center justify-center transition"
-          >
-            <FaUser className="text-orange-500 text-xl mb-2" />
-            <span className="text-sm text-gray-200">Profile</span>
-          </Link>
+        </div>
+        <div className="overflow-x-auto">
+          <table className="w-full">
+            <thead>
+              <tr className="text-left text-gray-400">
+                <th className="pb-4">Tour</th>
+                <th className="pb-4">Customer</th>
+                <th className="pb-4">Date</th>
+                <th className="pb-4">Status</th>
+                <th className="pb-4">Amount</th>
+              </tr>
+            </thead>
+            <tbody>
+              {data.recentBookings.map((booking) => (
+                <tr key={booking._id} className="border-t border-gray-700">
+                  <td className="py-4 text-white">{booking.tourTitle}</td>
+                  <td className="py-4 text-white">{booking.customerName}</td>
+                  <td className="py-4 text-gray-400">{new Date(booking.date).toLocaleDateString()}</td>
+                  <td className="py-4">
+                    <span className={`px-2 py-1 rounded-full text-xs ${
+                      booking.status === 'confirmed' ? 'bg-green-500' : 
+                      booking.status === 'pending' ? 'bg-yellow-500' : 
+                      'bg-red-500'
+                    }`}>
+                      {booking.status}
+                    </span>
+                  </td>
+                  <td className="py-4 text-white">₹{booking.amount.toLocaleString()}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
       </div>
     </div>

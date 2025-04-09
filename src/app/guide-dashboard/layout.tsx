@@ -3,12 +3,13 @@
 import { useState, ReactNode } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { 
   FaHome, FaCalendarAlt, FaComments, FaChartBar, 
   FaUser, FaCog, FaSignOutAlt, FaBars, FaTimes,
   FaBell, FaMapMarkedAlt, FaUsers
 } from 'react-icons/fa';
+import { deleteCookie } from 'cookies-next';
 
 interface GuideDashboardLayoutProps {
   children: ReactNode;
@@ -17,6 +18,27 @@ interface GuideDashboardLayoutProps {
 export default function GuideDashboardLayout({ children }: GuideDashboardLayoutProps) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const pathname = usePathname();
+  const router = useRouter();
+
+  const handleLogout = () => {
+    // Clear cookies
+    deleteCookie('token', { path: '/' });
+    
+    // Clear localStorage
+    localStorage.removeItem('user');
+    localStorage.removeItem('isLoggedIn');
+    localStorage.removeItem('userRole');
+    localStorage.removeItem('userName');
+    
+    // Broadcast logout event
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new Event('userLoggedOut'));
+      window.dispatchEvent(new Event('storage'));
+    }
+    
+    // Redirect to login page
+    router.push('/login');
+  };
 
   const navLinks = [
     { name: 'Dashboard', href: '/guide-dashboard', icon: FaHome },
@@ -99,13 +121,13 @@ export default function GuideDashboardLayout({ children }: GuideDashboardLayoutP
               <FaHome className="mr-3 text-lg" />
               View Website
             </Link>
-            <Link
-              href="/guide-dashboard/logout"
-              className="flex items-center px-4 py-3 text-sm text-gray-300 rounded-md hover:bg-gray-700 transition-colors"
+            <button
+              onClick={handleLogout}
+              className="w-full flex items-center px-4 py-3 text-sm text-gray-300 rounded-md hover:bg-gray-700 transition-colors"
             >
               <FaSignOutAlt className="mr-3 text-lg" />
               Sign Out
-            </Link>
+            </button>
           </div>
         </div>
       </aside>

@@ -68,8 +68,16 @@ export default function LoginPage() {
 
       // Short delay to ensure everything is set before redirect
       setTimeout(() => {
-        // Redirect to the dashboard page
-        router.push('/dashboard');
+        // Redirect based on user role
+        if (data.user && data.user.role) {
+          if (data.user.role === 'guide') {
+            router.push('/guide-dashboard');
+          } else {
+            router.push('/dashboard');
+          }
+        } else {
+          router.push('/dashboard');
+        }
       }, 500);
     } catch (error) {
       console.error('Login error:', error);
