@@ -92,7 +92,17 @@ export default function TravelerLayout({
 
   const handleLogout = () => {
     // Delete the token cookie
-    deleteCookie('token', { path: '/' });
+    deleteCookie('token');
+    
+    // Clear localStorage
+    localStorage.removeItem('user');
+    localStorage.removeItem('isLoggedIn');
+    
+    // Broadcast logout event
+    const event = new Event('userLoggedOut');
+    window.dispatchEvent(event);
+    
+    // Redirect to login page
     router.push('/login');
   };
 

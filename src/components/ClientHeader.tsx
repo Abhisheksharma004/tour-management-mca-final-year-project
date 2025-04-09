@@ -92,16 +92,10 @@ export default function ClientHeader() {
         },
       });
       
-      if (!response.ok) {
-        throw new Error('Failed to logout');
-      }
-      
-      // Clear client-side data
+      // Clear client-side data regardless of API response
       deleteCookie('token');
       localStorage.removeItem('user');
       localStorage.removeItem('isLoggedIn');
-      localStorage.removeItem('userRole');
-      localStorage.removeItem('userName');
       
       // Update component state
       setIsLoggedIn(false);
@@ -109,7 +103,8 @@ export default function ClientHeader() {
       setUserName(null);
       
       // Broadcast logout event
-      window.dispatchEvent(new Event('storage'));
+      const event = new Event('userLoggedOut');
+      window.dispatchEvent(event);
       
       // Redirect to home page
       router.push('/');
@@ -119,8 +114,6 @@ export default function ClientHeader() {
       deleteCookie('token');
       localStorage.removeItem('user');
       localStorage.removeItem('isLoggedIn');
-      localStorage.removeItem('userRole');
-      localStorage.removeItem('userName');
       
       setIsLoggedIn(false);
       setUserRole(null);

@@ -21,20 +21,15 @@ export default function GuideDashboardLayout({ children }: GuideDashboardLayoutP
   const router = useRouter();
 
   const handleLogout = () => {
-    // Clear cookies
-    deleteCookie('token', { path: '/' });
-    
+    // Clear cookies properly using cookies-next
+    deleteCookie('token');
     // Clear localStorage
     localStorage.removeItem('user');
     localStorage.removeItem('isLoggedIn');
-    localStorage.removeItem('userRole');
-    localStorage.removeItem('userName');
     
     // Broadcast logout event
-    if (typeof window !== 'undefined') {
-      window.dispatchEvent(new Event('userLoggedOut'));
-      window.dispatchEvent(new Event('storage'));
-    }
+    const event = new Event('userLoggedOut');
+    window.dispatchEvent(event);
     
     // Redirect to login page
     router.push('/login');
