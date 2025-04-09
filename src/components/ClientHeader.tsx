@@ -22,7 +22,8 @@ export default function ClientHeader() {
   const [userName, setUserName] = useState<string | null>(null);
   const router = useRouter();
   
-  useEffect(() => {
+  // Function to check auth status from cookies and localStorage
+  const checkAuthStatus = () => {
     // Check if user is logged in using cookies
     const token = getCookie('token');
     
@@ -34,35 +35,99 @@ export default function ClientHeader() {
           setIsLoggedIn(true);
           setUserRole(decoded.role);
           setUserName(decoded.name);
-        } else {
-          // Token expired
-          setIsLoggedIn(false);
-          setUserRole(null);
-          setUserName(null);
+          return;
         }
       } catch (error) {
         console.error('Error decoding token:', error);
-        setIsLoggedIn(false);
-        setUserRole(null);
-        setUserName(null);
       }
+    }
+    
+    // Fallback to localStorage if token is not valid
+    const isLoggedInLS = localStorage.getItem('isLoggedIn') === 'true';
+    if (isLoggedInLS) {
+      setIsLoggedIn(true);
+      setUserRole(localStorage.getItem('userRole'));
+      setUserName(localStorage.getItem('userName'));
     } else {
       setIsLoggedIn(false);
       setUserRole(null);
       setUserName(null);
     }
+  };
+  
+  useEffect(() => {
+    // Initial check
+    checkAuthStatus();
+    
+    // Listen for login/logout events
+    const handleLoginEvent = () => {
+      checkAuthStatus();
+    };
+    
+    // Listen for storage events (when localStorage changes in other tabs)
+    const handleStorageEvent = () => {
+      checkAuthStatus();
+    };
+    
+    window.addEventListener('userLoggedIn', handleLoginEvent);
+    window.addEventListener('storage', handleStorageEvent);
+    
+    return () => {
+      window.removeEventListener('userLoggedIn', handleLoginEvent);
+      window.removeEventListener('storage', handleStorageEvent);
+    };
   }, []);
   
   const toggleMobileMenu = () => {
     setMobileMenuOpen(!mobileMenuOpen);
   };
 
-  const handleLogout = () => {
-    deleteCookie('token');
-    setIsLoggedIn(false);
-    setUserRole(null);
-    setUserName(null);
-    router.push('/');
+  const handleLogout = async () => {
+    try {
+      // Call the server-side logout API
+      const response = await fetch('/api/auth/logout', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to logout');
+      }
+      
+      // Clear client-side data
+      deleteCookie('token');
+      localStorage.removeItem('user');
+      localStorage.removeItem('isLoggedIn');
+      localStorage.removeItem('userRole');
+      localStorage.removeItem('userName');
+      
+      // Update component state
+      setIsLoggedIn(false);
+      setUserRole(null);
+      setUserName(null);
+      
+      // Broadcast logout event
+      window.dispatchEvent(new Event('storage'));
+      
+      // Redirect to home page
+      router.push('/');
+    } catch (error) {
+      console.error('Logout error:', error);
+      // If API call fails, still attempt to clear client-side data
+      deleteCookie('token');
+      localStorage.removeItem('user');
+      localStorage.removeItem('isLoggedIn');
+      localStorage.removeItem('userRole');
+      localStorage.removeItem('userName');
+      
+      setIsLoggedIn(false);
+      setUserRole(null);
+      setUserName(null);
+      
+      router.push('/');
+    }
   };
 
   // Function to render dashboard link for logged-in users

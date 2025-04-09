@@ -57,14 +57,20 @@ export default function LoginPage() {
       // Store user information in localStorage for menu access
       localStorage.setItem('user', JSON.stringify(data.user));
       localStorage.setItem('isLoggedIn', 'true');
+      localStorage.setItem('userRole', data.user.role || 'traveler');
+      localStorage.setItem('userName', data.user.name || '');
 
-      // We use this event to notify other components that the user has logged in
+      // Broadcast login event to update UI components
       if (typeof window !== 'undefined') {
         window.dispatchEvent(new Event('userLoggedIn'));
+        window.dispatchEvent(new Event('storage')); // Trigger storage event for components that listen to it
       }
 
-      // Redirect to dashboard page
-      router.push('/dashboard');
+      // Short delay to ensure everything is set before redirect
+      setTimeout(() => {
+        // Redirect to the dashboard page
+        router.push('/dashboard');
+      }, 500);
     } catch (error) {
       console.error('Login error:', error);
       setError(error instanceof Error ? error.message : 'Failed to login');
