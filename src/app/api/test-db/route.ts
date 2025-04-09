@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import mongoose from 'mongoose';
 import connectDB from '@/lib/db';
 import User from '@/models/User';
-import bcrypt from 'bcryptjs';
+import bcrypt from 'bcrypt';
 
 export async function GET() {
   try {

@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { MongoClient } from 'mongodb';
-import bcrypt from 'bcryptjs';
+import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
 import { z } from 'zod';
 import connectDB from '@/lib/db';
@@ -53,17 +53,12 @@ export async function POST(request: Request) {
           { status: 400 }
         );
       }
-      
-      // Hash password
-      const salt = await bcrypt.genSalt(10);
-      const hashedPassword = await bcrypt.hash(password, salt);
-      console.log('Password hashed successfully');
-      
+    
       // Create user using Mongoose model
       const newUser = await User.create({
         name,
         email,
-        password: hashedPassword,
+        password,
         role,
         avatar: `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=random`
       });

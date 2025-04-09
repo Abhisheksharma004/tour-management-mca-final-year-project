@@ -2,7 +2,6 @@ import { NextResponse } from 'next/server';
 import connectDB from '@/lib/db';
 import User from '@/models/User';
 import jwt from 'jsonwebtoken';
-import bcrypt from 'bcryptjs';
 import { z } from 'zod';
 
 if (!process.env.JWT_SECRET) {
@@ -51,17 +50,13 @@ export async function POST(request: Request) {
       );
     }
 
-    // Hash password directly without using the model middleware
-    const salt = await bcrypt.genSalt(10);
-    const hashedPassword = await bcrypt.hash(password, salt);
-    console.log('Password hashed successfully');
 
     // Create user
     console.log('Creating new user document');
     const newUser = {
       name,
       email,
-      password: hashedPassword,
+      password,
       role: 'traveler',
     };
     

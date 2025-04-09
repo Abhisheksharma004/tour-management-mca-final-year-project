@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import connectDB from '@/lib/db';
 import User from '@/models/User';
 import jwt from 'jsonwebtoken';
-import { compare } from 'bcryptjs';
+import { compare } from 'bcrypt';
 import { rateLimit } from '@/lib/rate-limit';
 
 if (!process.env.JWT_SECRET) {

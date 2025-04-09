@@ -5,7 +5,7 @@ import Tour from '@/models/Tour';
 import Booking from '@/models/Booking';
 import Guide from '@/models/Guide';
 import mongoose from 'mongoose';
-import bcrypt from 'bcryptjs';
+import bcrypt from 'bcrypt';
 
 export async function GET() {
   try {

@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { MongoClient } from 'mongodb';
-import bcrypt from 'bcryptjs';
+import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
 import { z } from 'zod';
 
@@ -52,9 +52,11 @@ export async function POST(request: Request) {
         { status: 401 }
       );
     }
-    
+    console.log('User found:', user, password);
     // Verify password
     const isPasswordValid = await bcrypt.compare(password, user.password);
+    console.log("Password verification result:", isPasswordValid);
+
     if (!isPasswordValid) {
       console.log('Invalid password for user:', email);
       return NextResponse.json(
