@@ -68,7 +68,7 @@ export default function Signup() {
       
       // Redirect based on user type
       if (data.user.role === 'guide') {
-        router.push('/guide/dashboard');
+        router.push('/guide-dashboard');
       } else {
         router.push('/traveler/dashboard');
       }
