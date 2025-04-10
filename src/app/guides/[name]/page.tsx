@@ -343,45 +343,49 @@ export default function GuideProfile({ params }: { params: { name: string } | Pr
               <h2 className="text-2xl font-bold mb-4">Tours with {guide.name}</h2>
               {validTours.length > 0 ? (
                 <div className="space-y-6">
-                  {validTours.map((tour) => (
-                    <div 
-                      key={tour.id} 
-                      className={`p-4 rounded-lg transition-colors ${selectedTour === tour.id ? 'bg-gray-700 border border-orange-500' : 'bg-gray-700 border border-transparent hover:border-gray-600'}`}
-                      onClick={() => setSelectedTour(tour.id)}
-                    >
-                      <div className="flex flex-col md:flex-row">
-                        <div className="md:w-1/4 mb-4 md:mb-0">
-                          <div className="relative h-40 md:h-full rounded-lg overflow-hidden">
-                            <Image 
-                              src={tour.image}
-                              alt={`${tour.title} - Tour offered by ${guide.name} in ${guide.location}`}
-                              fill
-                              sizes="(max-width: 768px) 100vw, 25vw"
-                              style={{ objectFit: "cover" }}
-                              unoptimized
-                            />
-                          </div>
-                        </div>
-                        <div className="md:w-3/4 md:pl-6">
-                          <div className="flex flex-wrap justify-between items-start mb-2">
-                            <h3 className="text-xl font-bold">{tour.title}</h3>
-                            <p className="font-bold text-orange-400">₹{tour.price} / person</p>
-                          </div>
-                          <p className="text-gray-300 mb-4">{tour.description}</p>
-                          <div className="flex flex-wrap gap-4 text-sm text-gray-400">
-                            <div className="flex items-center">
-                              <FaClock className="mr-1" />
-                              <span>{tour.duration}</span>
+                  {validTours.map((tour) => {
+                    // Use title or name or a fallback
+                    const tourTitle = tour.title || (tour as any).name || 'Unnamed Tour';
+                    return (
+                      <div 
+                        key={tour.id} 
+                        className={`p-4 rounded-lg transition-colors ${selectedTour === tour.id ? 'bg-gray-700 border border-orange-500' : 'bg-gray-700 border border-transparent hover:border-gray-600'}`}
+                        onClick={() => setSelectedTour(tour.id)}
+                      >
+                        <div className="flex flex-col md:flex-row">
+                          <div className="md:w-1/4 mb-4 md:mb-0">
+                            <div className="relative h-40 md:h-full rounded-lg overflow-hidden">
+                              <Image 
+                                src={tour.image}
+                                alt={`${tourTitle} - Tour offered by ${guide.name} in ${guide.location}`}
+                                fill
+                                sizes="(max-width: 768px) 100vw, 25vw"
+                                style={{ objectFit: "cover" }}
+                                unoptimized
+                              />
                             </div>
-                            <div className="flex items-center">
-                              <FaUser className="mr-1" />
-                              <span>Max {tour.maxParticipants} people</span>
+                          </div>
+                          <div className="md:w-3/4 md:pl-6">
+                            <div className="flex flex-wrap justify-between items-start mb-2">
+                              <h3 className="text-xl font-bold">{tourTitle}</h3>
+                              <p className="font-bold text-orange-400">₹{tour.price} / person</p>
+                            </div>
+                            <p className="text-gray-300 mb-4">{tour.description}</p>
+                            <div className="flex flex-wrap gap-4 text-sm text-gray-400">
+                              <div className="flex items-center">
+                                <FaClock className="mr-1" />
+                                <span>{tour.duration}</span>
+                              </div>
+                              <div className="flex items-center">
+                                <FaUser className="mr-1" />
+                                <span>Max {tour.maxParticipants} people</span>
+                              </div>
                             </div>
                           </div>
                         </div>
                       </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               ) : (
                 <div className="p-6 bg-gray-700 rounded-lg text-center">

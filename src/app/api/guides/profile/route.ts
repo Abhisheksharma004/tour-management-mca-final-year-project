@@ -69,17 +69,30 @@ export async function GET(request: Request) {
     console.log(`Found ${tours.length} tours for guide ${guide.name}`);
     
     // Transform tours data for frontend
-    const transformedTours = tours.length > 0 ? tours.map(tour => ({
-      id: tour._id.toString(),
-      title: tour.title,
-      description: tour.description,
-      duration: `${tour.duration} ${tour.duration === 1 ? 'hour' : 'hours'}`,
-      price: tour.price,
-      image: tour.image || 'https://images.unsplash.com/photo-1567157577867-05ccb1388e66?auto=format&fit=crop&q=80&w=1470',
-      maxParticipants: tour.maxParticipants || 8,
-      location: tour.location,
-      date: tour.date ? new Date(tour.date).toISOString().split('T')[0] : null
-    })) : [
+    const transformedTours = tours.length > 0 ? tours.map(tour => {
+      // Log the tour data to debug
+      console.log('Tour data from DB:', {
+        id: tour._id.toString(),
+        title: tour.title,
+        name: tour.name,
+        keys: Object.keys(tour)
+      });
+      
+      // Make sure we use title if available, otherwise use name
+      const tourTitle = tour.title || tour.name || 'Unnamed Tour';
+      
+      return {
+        id: tour._id.toString(),
+        title: tourTitle,
+        description: tour.description || 'No description available',
+        duration: tour.duration ? `${tour.duration} ${tour.duration === 1 ? 'hour' : 'hours'}` : '3 hours',
+        price: tour.price || 2000,
+        image: tour.image || 'https://images.unsplash.com/photo-1567157577867-05ccb1388e66?auto=format&fit=crop&q=80&w=1470',
+        maxParticipants: tour.maxParticipants || 8,
+        location: tour.location || guide.location,
+        date: tour.date ? new Date(tour.date).toISOString().split('T')[0] : null
+      };
+    }) : [
       {
         id: '1',
         title: 'Local City Tour',
