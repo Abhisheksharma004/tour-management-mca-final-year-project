@@ -1,13 +1,13 @@
 'use client';
 
-import { useState, ReactNode } from 'react';
+import { useState, ReactNode, useEffect } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { usePathname, useRouter } from 'next/navigation';
 import { 
   FaHome, FaCalendarAlt, FaComments, FaChartBar, 
   FaUser, FaCog, FaSignOutAlt, FaBars, FaTimes,
-  FaBell, FaMapMarkedAlt, FaUsers
+  FaBell, FaMapMarkedAlt, FaUsers, FaSpinner
 } from 'react-icons/fa';
 import { deleteCookie } from 'cookies-next';
 
@@ -15,10 +15,47 @@ interface GuideDashboardLayoutProps {
   children: ReactNode;
 }
 
+interface GuideUser {
+  id: string;
+  name: string;
+  email: string;
+  role: string;
+  avatar?: string;
+}
+
 export default function GuideDashboardLayout({ children }: GuideDashboardLayoutProps) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [user, setUser] = useState<GuideUser | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
   const pathname = usePathname();
   const router = useRouter();
+
+  useEffect(() => {
+    // Fetch user data from the API
+    const fetchUserData = async () => {
+      try {
+        setIsLoading(true);
+        const response = await fetch('/api/guides/profile');
+        const data = await response.json();
+        
+        if (data.success && data.guide) {
+          setUser({
+            id: data.guide.id,
+            name: data.guide.name,
+            email: data.guide.email,
+            role: data.guide.role,
+            avatar: data.guide.avatar || 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e'
+          });
+        }
+      } catch (error) {
+        console.error('Error fetching user data:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    
+    fetchUserData();
+  }, []);
 
   const handleLogout = () => {
     // Clear cookies properly using cookies-next
@@ -75,20 +112,35 @@ export default function GuideDashboardLayout({ children }: GuideDashboardLayoutP
 
         <div className="px-4 py-6">
           <div className="flex items-center space-x-3 mb-6">
-            <div className="relative w-10 h-10 rounded-full overflow-hidden border-2 border-orange-500">
-              <Image 
-                src="https://images.unsplash.com/photo-1472099645785-5658abf4ff4e" 
-                alt="Guide" 
-                fill 
-                sizes="40px"
-                className="object-cover"
-                priority
-              />
-            </div>
-            <div>
-              <p className="font-medium text-white">Guide Name</p>
-              <p className="text-sm text-gray-400">Professional Guide</p>
-            </div>
+            {isLoading ? (
+              <div className="flex items-center space-x-3">
+                <div className="relative w-10 h-10 rounded-full overflow-hidden bg-gray-700 flex items-center justify-center">
+                  <FaSpinner className="animate-spin text-gray-500" />
+                </div>
+                <div className="space-y-1">
+                  <div className="h-4 w-20 bg-gray-700 rounded animate-pulse"></div>
+                  <div className="h-3 w-24 bg-gray-700 rounded animate-pulse"></div>
+                </div>
+              </div>
+            ) : (
+              <>
+                <div className="relative w-10 h-10 rounded-full overflow-hidden border-2 border-orange-500">
+                  <Image 
+                    src={user?.avatar || "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e"} 
+                    alt={user?.name || "Guide"} 
+                    fill 
+                    sizes="40px"
+                    className="object-cover"
+                    priority
+                    unoptimized
+                  />
+                </div>
+                <div>
+                  <p className="font-medium text-white">{user?.name || "Guide"}</p>
+                  <p className="text-sm text-gray-400">Professional Guide</p>
+                </div>
+              </>
+            )}
           </div>
           
           <nav className="space-y-1">
@@ -148,7 +200,7 @@ export default function GuideDashboardLayout({ children }: GuideDashboardLayoutP
               </button>
               <span className="text-gray-400">|</span>
               <div className="text-sm text-gray-300">
-                Welcome, <span className="font-semibold text-white">Guide</span>
+                Welcome, <span className="font-semibold text-white">{user?.name || "Guide"}</span>
               </div>
             </div>
           </div>

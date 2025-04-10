@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Image from 'next/image';
 import { 
   FaUser, 
@@ -13,52 +13,124 @@ import {
   FaLanguage, 
   FaUpload, 
   FaSave, 
-  FaTrash
+  FaTrash,
+  FaSpinner
 } from 'react-icons/fa';
 
-// Sample guide data
-const guideData = {
-  id: '1',
-  name: 'Raj Mehta',
-  email: 'raj.mehta@example.com',
-  phone: '+91 98765 43210',
+// Define guide data interface
+interface GuideData {
+  id: string;
+  _id?: string;
+  name: string;
+  email: string;
+  phone?: string;
+  location?: string;
+  about?: string;
+  profileImage?: string;
+  coverImage?: string;
+  rating?: number;
+  reviews?: number;
+  languages?: string[];
+  website?: string;
+  specialties?: string[];
+  experience?: number;
+  socialMedia?: {
+    facebook?: string;
+    instagram?: string;
+    twitter?: string;
+  };
+  verificationStatus?: string;
+  certifications?: Array<{ name: string; year: string; verificationStatus: string }>;
+  galleryImages?: string[];
+}
+
+// Default fallback data
+const defaultGuideData: GuideData = {
+  id: '',
+  name: '',
+  email: '',
+  phone: '',
   location: 'Delhi, India',
-  about: 'Professional tour guide with 7+ years of experience showing visitors the rich history and culture of Delhi. Specialized in heritage tours and food experiences.',
+  about: 'No description available',
   profileImage: 'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d',
   coverImage: 'https://images.unsplash.com/photo-1533105079780-92b9be482077',
-  rating: 4.8,
-  reviews: 127,
-  languages: ['English', 'Hindi', 'Punjabi'],
-  website: 'https://rajmehta.example.com',
-  specialties: ['Heritage Tours', 'Food Tours', 'Cultural Experiences', 'Photography Tours'],
-  experience: 7,
+  rating: 0,
+  reviews: 0,
+  languages: ['English'],
+  website: '',
+  specialties: ['Tours'],
+  experience: 0,
   socialMedia: {
-    facebook: 'https://facebook.com/rajmehta',
-    instagram: 'https://instagram.com/raj_mehta_tours',
-    twitter: 'https://twitter.com/rajmehtatours'
+    facebook: '',
+    instagram: '',
+    twitter: ''
   },
-  verificationStatus: 'Verified',
-  certifications: [
-    { name: 'Ministry of Tourism Guide License', year: '2018', verificationStatus: 'Verified' },
-    { name: 'First Aid Certification', year: '2023', verificationStatus: 'Verified' }
-  ],
-  galleryImages: [
-    'https://images.unsplash.com/photo-1524492412937-b28074a5d7da',
-    'https://images.unsplash.com/photo-1566019055530-3ea65f7a3ebe',
-    'https://images.unsplash.com/photo-1514222134-b57cbb8ce073',
-    'https://images.unsplash.com/photo-1609609830354-8f615d61f7fc'
-  ]
+  verificationStatus: 'Pending',
+  certifications: [],
+  galleryImages: []
 };
 
 export default function ProfilePage() {
   const [isEditMode, setIsEditMode] = useState(false);
   const [activeTab, setActiveTab] = useState('basic');
-  const [profile, setProfile] = useState(guideData);
+  const [profile, setProfile] = useState<GuideData>(defaultGuideData);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [newLanguage, setNewLanguage] = useState('');
   const [newSpecialty, setNewSpecialty] = useState('');
   
+  // Fetch guide data from API
+  useEffect(() => {
+    const fetchGuideData = async () => {
+      try {
+        setIsLoading(true);
+        setError(null);
+        
+        const response = await fetch('/api/guides/profile');
+        const data = await response.json();
+        
+        if (!response.ok) {
+          throw new Error(data.error || 'Failed to fetch guide data');
+        }
+        
+        if (data.success && data.guide) {
+          // Transform API data to match our interface
+          const guideData: GuideData = {
+            id: data.guide.id,
+            name: data.guide.name || defaultGuideData.name,
+            email: data.guide.email || defaultGuideData.email,
+            phone: data.guide.phone || defaultGuideData.phone,
+            location: data.guide.location || defaultGuideData.location,
+            about: data.guide.about || defaultGuideData.about,
+            profileImage: data.guide.avatar || defaultGuideData.profileImage,
+            coverImage: data.guide.coverImage || defaultGuideData.coverImage,
+            languages: data.guide.languages || defaultGuideData.languages,
+            website: data.guide.website || defaultGuideData.website,
+            specialties: data.guide.specialties || defaultGuideData.specialties,
+            socialMedia: data.guide.socialMedia || defaultGuideData.socialMedia,
+            rating: data.guide.rating || defaultGuideData.rating,
+            reviews: data.guide.reviews || defaultGuideData.reviews,
+            verificationStatus: data.guide.verificationStatus || defaultGuideData.verificationStatus,
+            experience: data.guide.experience || defaultGuideData.experience,
+            certifications: data.guide.certifications || defaultGuideData.certifications,
+            galleryImages: data.guide.galleryImages || defaultGuideData.galleryImages
+          };
+          
+          setProfile(guideData);
+        }
+      } catch (error) {
+        console.error('Error fetching guide data:', error);
+        setError(error instanceof Error ? error.message : 'Failed to load profile data');
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    
+    fetchGuideData();
+  }, []);
+  
   const handleAddLanguage = () => {
-    if (newLanguage && !profile.languages.includes(newLanguage)) {
+    if (newLanguage && profile.languages && !profile.languages.includes(newLanguage)) {
       setProfile({
         ...profile,
         languages: [...profile.languages, newLanguage]
@@ -68,14 +140,16 @@ export default function ProfilePage() {
   };
   
   const handleRemoveLanguage = (language: string) => {
-    setProfile({
-      ...profile,
-      languages: profile.languages.filter(lang => lang !== language)
-    });
+    if (profile.languages) {
+      setProfile({
+        ...profile,
+        languages: profile.languages.filter(lang => lang !== language)
+      });
+    }
   };
   
   const handleAddSpecialty = () => {
-    if (newSpecialty && !profile.specialties.includes(newSpecialty)) {
+    if (newSpecialty && profile.specialties && !profile.specialties.includes(newSpecialty)) {
       setProfile({
         ...profile,
         specialties: [...profile.specialties, newSpecialty]
@@ -85,10 +159,12 @@ export default function ProfilePage() {
   };
   
   const handleRemoveSpecialty = (specialty: string) => {
-    setProfile({
-      ...profile,
-      specialties: profile.specialties.filter(spec => spec !== specialty)
-    });
+    if (profile.specialties) {
+      setProfile({
+        ...profile,
+        specialties: profile.specialties.filter(spec => spec !== specialty)
+      });
+    }
   };
   
   const handleSaveProfile = () => {
@@ -96,6 +172,29 @@ export default function ProfilePage() {
     console.log('Saving profile data:', profile);
     setIsEditMode(false);
   };
+
+  if (isLoading) {
+    return (
+      <div className="flex justify-center items-center h-64">
+        <FaSpinner className="animate-spin text-orange-500 mr-2" size={24} />
+        <span className="text-gray-300">Loading profile data...</span>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="bg-red-900/30 border border-red-700 rounded-lg p-4 text-red-200">
+        <p>Error loading profile: {error}</p>
+        <button 
+          onClick={() => window.location.reload()}
+          className="mt-3 px-4 py-2 bg-red-700 hover:bg-red-800 text-white rounded"
+        >
+          Try Again
+        </button>
+      </div>
+    );
+  }
   
   return (
     <div>
@@ -103,7 +202,7 @@ export default function ProfilePage() {
       <div className="relative rounded-lg overflow-hidden mb-6 bg-gray-800 border border-gray-700">
         <div className="h-48 md:h-64 relative">
           <Image 
-            src={profile.coverImage} 
+            src={profile.coverImage || defaultGuideData.coverImage} 
             alt="Cover" 
             fill 
             style={{ objectFit: "cover" }}
@@ -120,7 +219,7 @@ export default function ProfilePage() {
         <div className="px-4 md:px-6 pb-6 pt-16 relative">
           <div className="absolute -top-16 left-6 rounded-full overflow-hidden border-4 border-gray-800 shadow-lg bg-gray-700 w-24 h-24 md:w-32 md:h-32 relative">
             <Image 
-              src={profile.profileImage} 
+              src={profile.profileImage || defaultGuideData.profileImage} 
               alt={profile.name} 
               fill 
               style={{ objectFit: "cover" }}
@@ -211,7 +310,7 @@ export default function ProfilePage() {
                       <textarea 
                         className="w-full bg-gray-700 border border-gray-600 rounded-md p-3 text-white focus:ring-orange-500 focus:border-orange-500"
                         rows={4}
-                        value={profile.about}
+                        value={profile.about || ''}
                         onChange={(e) => setProfile({...profile, about: e.target.value})}
                       />
                     ) : (
@@ -252,18 +351,21 @@ export default function ProfilePage() {
                           <input 
                             type="tel" 
                             className="w-full pl-10 pr-4 py-2 bg-gray-700 border border-gray-600 rounded-md text-white focus:ring-orange-500 focus:border-orange-500"
-                            value={profile.phone}
+                            value={profile.phone || ''}
                             onChange={(e) => setProfile({...profile, phone: e.target.value})}
                           />
                         </div>
                       ) : (
                         <div className="flex items-center text-gray-300">
                           <FaPhone className="text-gray-400 mr-2" />
-                          {profile.phone}
+                          {profile.phone || 'Not provided'}
                         </div>
                       )}
                     </div>
-                    
+                  </div>
+                  
+                  {/* Continue with the remaining form fields */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
                       <label className="block text-sm font-medium text-gray-400 mb-2">Location</label>
                       {isEditMode ? (
@@ -274,7 +376,7 @@ export default function ProfilePage() {
                           <input 
                             type="text" 
                             className="w-full pl-10 pr-4 py-2 bg-gray-700 border border-gray-600 rounded-md text-white focus:ring-orange-500 focus:border-orange-500"
-                            value={profile.location}
+                            value={profile.location || ''}
                             onChange={(e) => setProfile({...profile, location: e.target.value})}
                           />
                         </div>
@@ -296,42 +398,53 @@ export default function ProfilePage() {
                           <input 
                             type="url" 
                             className="w-full pl-10 pr-4 py-2 bg-gray-700 border border-gray-600 rounded-md text-white focus:ring-orange-500 focus:border-orange-500"
-                            value={profile.website}
+                            value={profile.website || ''}
                             onChange={(e) => setProfile({...profile, website: e.target.value})}
+                            placeholder="https://example.com"
                           />
                         </div>
                       ) : (
                         <div className="flex items-center text-gray-300">
                           <FaGlobe className="text-gray-400 mr-2" />
-                          <a href={profile.website} target="_blank" rel="noopener noreferrer" className="text-orange-400 hover:text-orange-300">
-                            {profile.website}
-                          </a>
+                          {profile.website ? (
+                            <a href={profile.website} target="_blank" rel="noopener noreferrer" className="text-blue-400 hover:underline">
+                              {profile.website}
+                            </a>
+                          ) : (
+                            'Not provided'
+                          )}
                         </div>
                       )}
                     </div>
                   </div>
-                  
+                </div>
+              )}
+              
+              {/* Specialties Tab */}
+              {activeTab === 'specialties' && (
+                <div className="space-y-6">
                   <div>
-                    <label className="block text-sm font-medium text-gray-400 mb-2">Languages</label>
-                    <div className="flex flex-wrap gap-2 mb-3">
-                      {profile.languages.map((language, index) => (
+                    <div className="flex items-center justify-between mb-2">
+                      <label className="text-sm font-medium text-gray-400">Languages</label>
+                      <div className="flex items-center text-gray-400 text-sm">
+                        <FaLanguage className="mr-1" />
+                        <span>{profile.languages?.length || 0} languages</span>
+                      </div>
+                    </div>
+                    
+                    <div className="flex flex-wrap gap-2 mb-4">
+                      {profile.languages?.map((language) => (
                         <div 
-                          key={index} 
-                          className={`px-3 py-1.5 rounded-full text-sm flex items-center 
-                            ${isEditMode 
-                              ? 'bg-gray-700 text-gray-300 border border-gray-600' 
-                              : 'bg-gray-700/50 text-gray-300'
-                            }`
-                          }
+                          key={language} 
+                          className="px-3 py-1 bg-gray-700 text-gray-300 rounded-full flex items-center"
                         >
-                          <FaLanguage className="mr-1 text-gray-400" />
                           {language}
                           {isEditMode && (
-                            <button 
-                              className="ml-2 text-gray-400 hover:text-red-400"
+                            <button
                               onClick={() => handleRemoveLanguage(language)}
+                              className="ml-2 text-gray-400 hover:text-red-400"
                             >
-                              &times;
+                              <FaTrash size={10} />
                             </button>
                           )}
                         </div>
@@ -339,18 +452,17 @@ export default function ProfilePage() {
                     </div>
                     
                     {isEditMode && (
-                      <div className="flex">
+                      <div className="flex items-center mt-3">
                         <input 
                           type="text" 
-                          placeholder="Add language..." 
-                          className="flex-1 bg-gray-700 border border-gray-600 rounded-l-md p-2 text-white focus:ring-orange-500 focus:border-orange-500"
                           value={newLanguage}
                           onChange={(e) => setNewLanguage(e.target.value)}
-                          onKeyDown={(e) => e.key === 'Enter' && handleAddLanguage()}
+                          placeholder="Add language"
+                          className="flex-1 px-3 py-2 bg-gray-700 border border-gray-600 rounded-l-md text-white focus:outline-none focus:ring-1 focus:ring-orange-500"
                         />
                         <button 
-                          className="bg-orange-600 hover:bg-orange-700 text-white px-3 rounded-r-md"
                           onClick={handleAddLanguage}
+                          className="px-3 py-2 bg-orange-600 text-white rounded-r-md hover:bg-orange-700"
                         >
                           Add
                         </button>
@@ -359,109 +471,65 @@ export default function ProfilePage() {
                   </div>
                   
                   <div>
-                    <label className="block text-sm font-medium text-gray-400 mb-2">Experience</label>
-                    {isEditMode ? (
-                      <div className="flex items-center">
-                        <input 
-                          type="number" 
-                          min="0"
-                          max="50"
-                          className="w-20 bg-gray-700 border border-gray-600 rounded-md p-2 text-white focus:ring-orange-500 focus:border-orange-500"
-                          value={profile.experience}
-                          onChange={(e) => setProfile({...profile, experience: parseInt(e.target.value) || 0})}
-                        />
-                        <span className="ml-2 text-gray-300">years</span>
+                    <div className="flex items-center justify-between mb-2">
+                      <label className="text-sm font-medium text-gray-400">Specialties</label>
+                      <div className="flex items-center text-gray-400 text-sm">
+                        <span>{profile.specialties?.length || 0} specialties</span>
                       </div>
-                    ) : (
-                      <p className="text-gray-300">{profile.experience} years</p>
-                    )}
-                  </div>
-                </div>
-              )}
-              
-              {/* Specialties Tab */}
-              {activeTab === 'specialties' && (
-                <div>
-                  <label className="block text-sm font-medium text-gray-400 mb-3">Your Specialties</label>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4">
-                    {profile.specialties.map((specialty, index) => (
-                      <div 
-                        key={index}
-                        className={`p-3 rounded-lg ${isEditMode 
-                          ? 'bg-gray-700 border border-gray-600 flex justify-between items-center' 
-                          : 'bg-gray-700/50'}`
-                        }
-                      >
-                        <span className="text-gray-200">{specialty}</span>
-                        {isEditMode && (
-                          <button 
-                            className="text-gray-400 hover:text-red-400"
-                            onClick={() => handleRemoveSpecialty(specialty)}
-                          >
-                            <FaTrash size={14} />
-                          </button>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                  
-                  {isEditMode && (
-                    <div className="flex mt-4">
-                      <input 
-                        type="text" 
-                        placeholder="Add specialty..." 
-                        className="flex-1 bg-gray-700 border border-gray-600 rounded-l-md p-2 text-white focus:ring-orange-500 focus:border-orange-500"
-                        value={newSpecialty}
-                        onChange={(e) => setNewSpecialty(e.target.value)}
-                        onKeyDown={(e) => e.key === 'Enter' && handleAddSpecialty()}
-                      />
-                      <button 
-                        className="bg-orange-600 hover:bg-orange-700 text-white px-3 rounded-r-md"
-                        onClick={handleAddSpecialty}
-                      >
-                        Add
-                      </button>
                     </div>
-                  )}
-                  
-                  <div className="mt-6">
-                    <label className="block text-sm font-medium text-gray-400 mb-3">Certifications</label>
-                    <div className="space-y-3">
-                      {profile.certifications.map((cert, index) => (
+                    
+                    <div className="flex flex-wrap gap-2 mb-4">
+                      {profile.specialties?.map((specialty) => (
                         <div 
-                          key={index}
-                          className={`p-3 rounded-lg ${isEditMode 
-                            ? 'bg-gray-700 border border-gray-600' 
-                            : 'bg-gray-700/50'}`
-                          }
+                          key={specialty} 
+                          className="px-3 py-1 bg-gray-700 text-gray-300 rounded-full flex items-center"
                         >
-                          <div className="flex justify-between">
-                            <span className="text-gray-200">{cert.name}</span>
-                            <span className="text-gray-400">{cert.year}</span>
-                          </div>
-                          <div className="mt-1 flex justify-between items-center">
-                            <span className={`text-xs px-2 py-0.5 rounded-full ${
-                              cert.verificationStatus === 'Verified' 
-                                ? 'bg-green-900/50 text-green-300 border border-green-700' 
-                                : 'bg-yellow-900/50 text-yellow-300 border border-yellow-700'
-                            }`}>
-                              {cert.verificationStatus}
-                            </span>
-                            {isEditMode && (
-                              <button className="text-red-400 hover:text-red-300">
-                                <FaTrash size={14} />
-                              </button>
-                            )}
-                          </div>
+                          {specialty}
+                          {isEditMode && (
+                            <button
+                              onClick={() => handleRemoveSpecialty(specialty)}
+                              className="ml-2 text-gray-400 hover:text-red-400"
+                            >
+                              <FaTrash size={10} />
+                            </button>
+                          )}
                         </div>
                       ))}
                     </div>
                     
                     {isEditMode && (
-                      <button className="mt-3 flex items-center text-orange-500 hover:text-orange-400">
-                        <FaUpload className="mr-1" size={14} />
-                        Add Certification
-                      </button>
+                      <div className="flex items-center mt-3">
+                        <input 
+                          type="text" 
+                          value={newSpecialty}
+                          onChange={(e) => setNewSpecialty(e.target.value)}
+                          placeholder="Add specialty"
+                          className="flex-1 px-3 py-2 bg-gray-700 border border-gray-600 rounded-l-md text-white focus:outline-none focus:ring-1 focus:ring-orange-500"
+                        />
+                        <button 
+                          onClick={handleAddSpecialty}
+                          className="px-3 py-2 bg-orange-600 text-white rounded-r-md hover:bg-orange-700"
+                        >
+                          Add
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                  
+                  <div>
+                    <label className="block text-sm font-medium text-gray-400 mb-2">Experience (Years)</label>
+                    {isEditMode ? (
+                      <input 
+                        type="number" 
+                        className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-md text-white focus:ring-orange-500 focus:border-orange-500"
+                        value={profile.experience || 0}
+                        onChange={(e) => setProfile({...profile, experience: parseInt(e.target.value)})}
+                        min="0"
+                      />
+                    ) : (
+                      <p className="text-gray-300">
+                        {profile.experience ? `${profile.experience} years` : 'Not specified'}
+                      </p>
                     )}
                   </div>
                 </div>
@@ -470,108 +538,137 @@ export default function ProfilePage() {
               {/* Gallery Tab */}
               {activeTab === 'gallery' && (
                 <div>
-                  <label className="block text-sm font-medium text-gray-400 mb-3">
-                    Profile Gallery 
-                    {isEditMode && <span className="text-gray-500 ml-2">(These images appear on your public profile)</span>}
-                  </label>
-                  
-                  <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                    {profile.galleryImages.map((image, index) => (
-                      <div key={index} className="aspect-square rounded-lg overflow-hidden relative group">
-                        <Image 
-                          src={image} 
-                          alt={`Gallery image ${index + 1}`} 
-                          fill 
-                          style={{ objectFit: "cover" }}
-                          className="bg-gray-700"
-                          unoptimized
-                        />
-                        {isEditMode && (
-                          <div className="absolute inset-0 bg-black bg-opacity-50 flex justify-center items-center opacity-0 group-hover:opacity-100 transition">
-                            <button className="p-2 bg-red-600 rounded-full">
-                              <FaTrash className="text-white" />
-                            </button>
-                          </div>
-                        )}
-                      </div>
-                    ))}
-                    
+                  <div className="flex items-center justify-between mb-4">
+                    <label className="text-sm font-medium text-gray-400">Photo Gallery</label>
                     {isEditMode && (
-                      <div className="aspect-square border-2 border-dashed border-gray-600 rounded-lg flex flex-col items-center justify-center bg-gray-700 hover:bg-gray-600 transition cursor-pointer">
-                        <FaUpload className="text-gray-400 text-2xl mb-2" />
-                        <span className="text-sm text-gray-400">Upload Image</span>
-                      </div>
+                      <button className="px-3 py-1 bg-orange-600 text-white rounded flex items-center text-sm hover:bg-orange-700">
+                        <FaUpload className="mr-2" />
+                        Upload Photos
+                      </button>
                     )}
                   </div>
+                  
+                  {profile.galleryImages && profile.galleryImages.length > 0 ? (
+                    <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                      {profile.galleryImages.map((image, index) => (
+                        <div key={index} className="relative aspect-square rounded-lg overflow-hidden border border-gray-700">
+                          <Image 
+                            src={image} 
+                            alt={`Gallery image ${index + 1}`} 
+                            fill
+                            style={{ objectFit: "cover" }}
+                            className="hover:scale-105 transition-transform duration-300"
+                            unoptimized
+                          />
+                          {isEditMode && (
+                            <button className="absolute top-2 right-2 p-1.5 bg-red-500 text-white rounded-full opacity-80 hover:opacity-100">
+                              <FaTrash size={12} />
+                            </button>
+                          )}
+                        </div>
+                      ))}
+                      
+                      {isEditMode && (
+                        <div className="flex items-center justify-center aspect-square rounded-lg border-2 border-dashed border-gray-600 hover:border-orange-500 transition-colors cursor-pointer">
+                          <div className="text-center">
+                            <FaUpload className="mx-auto text-gray-400 mb-2" size={24} />
+                            <span className="text-sm text-gray-400">Add Photo</span>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    <div className="text-center py-10 border-2 border-dashed border-gray-700 rounded-lg">
+                      <FaCamera className="mx-auto text-gray-500 mb-3" size={36} />
+                      <p className="text-gray-400 mb-2">No photos in your gallery yet</p>
+                      {isEditMode && (
+                        <button className="px-4 py-2 bg-orange-600 text-white rounded mt-2 hover:bg-orange-700">
+                          Upload Your First Photo
+                        </button>
+                      )}
+                    </div>
+                  )}
                 </div>
               )}
             </div>
           </div>
         </div>
         
-        {/* Right Column - Stats and Additional Info */}
+        {/* Right Column - Stats and Certifications */}
         <div>
-          <div className="bg-gray-800 rounded-lg border border-gray-700 shadow-lg p-4 mb-6">
-            <h2 className="text-lg font-medium text-white mb-3">Guide Stats</h2>
-            
-            <div className="space-y-4">
-              <div>
-                <div className="flex justify-between items-center mb-2">
-                  <span className="text-gray-400">Rating</span>
-                  <div className="flex items-center">
-                    <span className="text-white mr-1">{profile.rating}</span>
-                    <FaStar className="text-yellow-500" />
-                  </div>
-                </div>
-                <div className="h-2 bg-gray-700 rounded-full overflow-hidden">
-                  <div 
-                    className="h-full bg-yellow-500"
-                    style={{ width: `${(profile.rating / 5) * 100}%` }}
-                  ></div>
+          {/* Statistics Card */}
+          <div className="bg-gray-800 rounded-lg border border-gray-700 shadow-lg overflow-hidden mb-6">
+            <div className="p-4 border-b border-gray-700">
+              <h2 className="text-lg font-medium text-white">Statistics</h2>
+            </div>
+            <div className="p-4">
+              <div className="flex items-center justify-between mb-4">
+                <div className="text-gray-400">Rating</div>
+                <div className="flex items-center">
+                  <FaStar className="text-orange-500 mr-1" />
+                  <span className="text-white font-medium">{profile.rating || '0.0'}</span>
+                  <span className="text-gray-400 text-sm ml-1">/ 5.0</span>
                 </div>
               </div>
               
-              <div className="flex justify-between py-2 border-b border-gray-700">
-                <span className="text-gray-400">Reviews</span>
-                <span className="text-white">{profile.reviews}</span>
+              <div className="flex items-center justify-between mb-4">
+                <div className="text-gray-400">Reviews</div>
+                <div className="text-white font-medium">{profile.reviews || 0}</div>
               </div>
               
-              <div className="flex justify-between py-2 border-b border-gray-700">
-                <span className="text-gray-400">Total Tours</span>
-                <span className="text-white">153</span>
-              </div>
-              
-              <div className="flex justify-between py-2 border-b border-gray-700">
-                <span className="text-gray-400">Active Tours</span>
-                <span className="text-white">5</span>
-              </div>
-              
-              <div className="flex justify-between py-2">
-                <span className="text-gray-400">Response Rate</span>
-                <span className="text-white">98%</span>
+              <div className="flex items-center justify-between">
+                <div className="text-gray-400">Experience</div>
+                <div className="text-white font-medium">
+                  {profile.experience ? `${profile.experience} years` : 'Not specified'}
+                </div>
               </div>
             </div>
           </div>
           
-          <div className="bg-gray-800 rounded-lg border border-gray-700 shadow-lg p-4">
-            <h2 className="text-lg font-medium text-white mb-3">Account Settings</h2>
-            
-            <div className="space-y-3">
-              <button className="w-full text-left px-4 py-2 bg-gray-700 hover:bg-gray-600 rounded-md text-white transition">
-                Change Password
-              </button>
-              
-              <button className="w-full text-left px-4 py-2 bg-gray-700 hover:bg-gray-600 rounded-md text-white transition">
-                Notification Settings
-              </button>
-              
-              <button className="w-full text-left px-4 py-2 bg-gray-700 hover:bg-gray-600 rounded-md text-white transition">
-                Privacy Settings
-              </button>
-              
-              <button className="w-full text-left px-4 py-2 bg-red-900/40 hover:bg-red-900/60 rounded-md text-red-300 border border-red-700 transition mt-6">
-                Deactivate Account
-              </button>
+          {/* Certifications Card */}
+          <div className="bg-gray-800 rounded-lg border border-gray-700 shadow-lg overflow-hidden">
+            <div className="p-4 border-b border-gray-700 flex justify-between items-center">
+              <h2 className="text-lg font-medium text-white">Certifications</h2>
+              {isEditMode && (
+                <button className="text-sm text-orange-500 hover:text-orange-400">
+                  + Add New
+                </button>
+              )}
+            </div>
+            <div className="p-4">
+              {profile.certifications && profile.certifications.length > 0 ? (
+                <div className="space-y-4">
+                  {profile.certifications.map((cert, index) => (
+                    <div key={index} className="p-3 bg-gray-700 rounded-lg relative">
+                      <div className="flex justify-between">
+                        <h3 className="font-medium text-white">{cert.name}</h3>
+                        {isEditMode && (
+                          <button className="text-gray-400 hover:text-red-400">
+                            <FaTrash size={14} />
+                          </button>
+                        )}
+                      </div>
+                      <p className="text-sm text-gray-400 mt-1">Year: {cert.year}</p>
+                      <span className={`mt-2 inline-block px-2 py-0.5 rounded-full text-xs ${
+                        cert.verificationStatus === 'Verified' 
+                          ? 'bg-green-900/50 text-green-300 border border-green-700' 
+                          : 'bg-yellow-900/50 text-yellow-300 border border-yellow-700'
+                      }`}>
+                        {cert.verificationStatus}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-6">
+                  <p className="text-gray-400 mb-2">No certifications added yet</p>
+                  {isEditMode && (
+                    <button className="px-4 py-2 bg-orange-600 text-white rounded hover:bg-orange-700">
+                      Add Certification
+                    </button>
+                  )}
+                </div>
+              )}
             </div>
           </div>
         </div>
