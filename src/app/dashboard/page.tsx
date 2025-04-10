@@ -4,6 +4,8 @@ import { useState, useEffect } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import DateDisplay from '@/components/DateDisplay';
+import AccountSettingsPopup from '@/components/AccountSettingsPopup';
+import { FaUserEdit, FaCog } from 'react-icons/fa';
 
 // Define types for the dashboard data
 interface Booking {
@@ -30,6 +32,16 @@ interface SavedGuide {
 interface UserData {
   name: string;
   avatar: string;
+  email?: string;
+  phone?: string;
+  location?: string;
+  dob?: string;
+  bio?: string;
+  preferences?: {
+    tourTypes?: string[];
+    languages?: string[];
+  };
+  profileCompleted?: boolean;
   upcomingBookings: Booking[];
   pastBookings: Booking[];
   savedGuides: SavedGuide[];
@@ -43,6 +55,8 @@ export default function Dashboard() {
   const [removingGuide, setRemovingGuide] = useState<string | null>(null);
   const [cancelingBooking, setCancelingBooking] = useState<string | null>(null);
   const [bookingToCancel, setBookingToCancel] = useState<string | null>(null);
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [showProfilePrompt, setShowProfilePrompt] = useState(false);
 
   useEffect(() => {
     const fetchDashboardData = async () => {
@@ -58,6 +72,11 @@ export default function Dashboard() {
         const data = await response.json();
         if (data.success) {
           setUserData(data.userData);
+          
+          // If profile is not completed, show the prompt
+          if (data.userData && !data.userData.profileCompleted) {
+            setShowProfilePrompt(true);
+          }
         } else {
           throw new Error(data.error || 'Failed to fetch dashboard data');
         }
@@ -198,6 +217,58 @@ export default function Dashboard() {
   return (
     <div className="min-h-screen bg-gray-900 text-white">
       <div className="max-w-7xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
+        {/* Welcome Section */}
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8">
+          <div className="flex items-center mb-4 md:mb-0">
+            <div className="h-16 w-16 relative rounded-full overflow-hidden border-2 border-orange-500">
+              <Image 
+                src={userData.avatar || '/images/default-avatar.png'} 
+                alt={userData.name}
+                fill
+                sizes="64px"
+                className="object-cover"
+                priority
+                unoptimized
+              />
+            </div>
+            <div className="ml-4">
+              <h1 className="text-2xl font-bold">Welcome, {userData.name}</h1>
+              <p className="text-gray-400">Manage your bookings and saved guides</p>
+            </div>
+          </div>
+          
+          <button
+            onClick={() => setIsSettingsOpen(true)}
+            className="flex items-center px-4 py-2 bg-gray-800 hover:bg-gray-700 rounded-md border border-gray-700 transition"
+          >
+            <FaCog className="mr-2" />
+            Account Settings
+          </button>
+        </div>
+        
+        {/* Profile completion prompt */}
+        {showProfilePrompt && (
+          <div className="mb-8 p-4 bg-gray-800 rounded-lg border border-orange-600">
+            <div className="flex items-start md:items-center">
+              <div className="hidden md:block bg-orange-700 p-3 rounded-md mr-4">
+                <FaUserEdit className="text-white text-xl" />
+              </div>
+              <div className="flex-1">
+                <h3 className="text-lg font-medium text-white">Complete Your Profile</h3>
+                <p className="text-gray-400 mt-1">
+                  Please take a moment to complete your profile information. This helps guides provide you with a more personalized experience.
+                </p>
+              </div>
+              <button
+                onClick={() => setIsSettingsOpen(true)}
+                className="ml-4 px-4 py-2 bg-orange-600 hover:bg-orange-700 text-white rounded-md transition"
+              >
+                Complete Now
+              </button>
+            </div>
+          </div>
+        )}
+
         <div className="flex flex-col md:flex-row items-start gap-8">
           {/* Sidebar */}
           <div className="w-full md:w-64 bg-gray-800 rounded-lg p-6 shadow-md">
@@ -483,38 +554,40 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* Cancellation Confirmation Modal */}
+      {/* Account Settings Popup */}
+      {userData && (
+        <AccountSettingsPopup
+          isOpen={isSettingsOpen}
+          onClose={() => setIsSettingsOpen(false)}
+          userData={userData}
+        />
+      )}
+      
+      {/* Booking cancellation confirmation modal */}
       {bookingToCancel && (
-        <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50 p-4">
-          <div className="bg-gray-800 rounded-lg p-6 max-w-md w-full">
-            <h3 className="text-xl font-bold mb-4">Cancel Booking</h3>
+        <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/70">
+          <div className="bg-gray-800 rounded-lg shadow-xl p-6 w-full max-w-md">
+            <h3 className="text-xl font-semibold text-white mb-4">Confirm Cancellation</h3>
             <p className="text-gray-300 mb-6">
               Are you sure you want to cancel this booking? This action cannot be undone.
             </p>
-            <div className="flex gap-3">
+            <div className="flex justify-end space-x-3">
               <button
-                className="flex-1 px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 transition"
-                onClick={() => cancelBooking(bookingToCancel)}
-                disabled={cancelingBooking !== null}
+                onClick={() => setBookingToCancel(null)}
+                className="px-4 py-2 border border-gray-600 text-gray-300 rounded-md hover:bg-gray-700 transition"
               >
-                {cancelingBooking ? (
-                  <span className="flex items-center justify-center">
-                    <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                    </svg>
-                    Processing...
-                  </span>
-                ) : (
-                  'Yes, Cancel Booking'
-                )}
+                No, Keep Booking
               </button>
               <button
-                className="flex-1 px-4 py-2 border border-gray-600 text-gray-300 rounded-md hover:bg-gray-700 transition"
-                onClick={() => setBookingToCancel(null)}
-                disabled={cancelingBooking !== null}
+                onClick={() => cancelBooking(bookingToCancel)}
+                className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 transition flex items-center"
+                disabled={!!cancelingBooking}
               >
-                No, Keep It
+                {cancelingBooking === bookingToCancel ? (
+                  <span>Canceling...</span>
+                ) : (
+                  <span>Yes, Cancel</span>
+                )}
               </button>
             </div>
           </div>
