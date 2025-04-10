@@ -288,7 +288,21 @@ export default function SearchGuides() {
                 
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                   {guidesToDisplay.map((guide) => (
-                    <Link href={`/guides/${guide.slug}`} key={guide.id}>
+                    <Link 
+                      href={`/guides/${guide.slug || guide.id}`} 
+                      key={guide.id}
+                      onClick={(e) => {
+                        // Log the guide information before navigation
+                        console.log(`Navigating to guide: ${guide.name}, ID: ${guide.id}, Slug: ${guide.slug}`);
+                        
+                        // Check if the slug is valid
+                        if (!guide.slug && !guide.id) {
+                          e.preventDefault();
+                          console.error('Invalid guide data: missing slug and id');
+                          alert('Unable to view this guide profile. Please try another guide.');
+                        }
+                      }}
+                    >
                       <div className="bg-gray-800 rounded-lg shadow-md overflow-hidden cursor-pointer hover:shadow-lg transition-shadow">
                         <div className="relative h-48">
                           <Image
