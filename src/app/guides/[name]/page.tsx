@@ -49,6 +49,8 @@ type Guide = {
   tours: Tour[];
   availability: Availability[];
   slug: string;
+  email?: string;
+  phone?: string;
 };
 
 export default function GuideProfile({ params }: { params: { name: string } | Promise<{ name: string }> }) {
@@ -62,9 +64,13 @@ export default function GuideProfile({ params }: { params: { name: string } | Pr
   
   const [selectedDate, setSelectedDate] = useState('');
   const [selectedTime, setSelectedTime] = useState('');
-  const [selectedTour, setSelectedTour] = useState('1');
+  const [selectedTour, setSelectedTour] = useState('');
   const [participants, setParticipants] = useState(1);
   const [bookingSuccess, setBookingSuccess] = useState(false);
+  const [validTours, setValidTours] = useState<Tour[]>([]);
+  const [availableDates, setAvailableDates] = useState<string[]>([]);
+  const [availableTimes, setAvailableTimes] = useState<string[]>([]);
+  const [selectedTourObject, setSelectedTourObject] = useState<Tour | undefined>(undefined);
 
   // Fetch guide data
   useEffect(() => {
@@ -79,7 +85,6 @@ export default function GuideProfile({ params }: { params: { name: string } | Pr
           method: 'GET',
           headers: {
             'Content-Type': 'application/json',
-            // Add cache control to prevent caching issues
             'Cache-Control': 'no-cache, no-store, must-revalidate'
           }
         });
@@ -105,15 +110,28 @@ export default function GuideProfile({ params }: { params: { name: string } | Pr
         }
         
         const data = await response.json();
-        console.log(`Received data: success=${data.success}`);
+        console.log(`Received data: success=${data.success}, guide=${data.guide ? data.guide.name : 'undefined'}`);
         
         if (data.success && data.guide) {
           console.log(`Guide data loaded for: ${data.guide.name}`);
-          setGuide(data.guide);
+          console.log(`Tours found: ${data.guide.tours?.length || 0}, Availability slots: ${data.guide.availability?.length || 0}`);
+          
+          const guide = data.guide;
+          setGuide(guide);
+          
+          // Process data immediately
+          const tours = Array.isArray(guide.tours) && guide.tours.length > 0 ? guide.tours : [];
+          setValidTours(tours);
+          
+          const dates = guide.availability?.map(item => item.date) || [];
+          setAvailableDates(dates);
+          
           // Set default selected tour if available
-          if (data.guide.tours && data.guide.tours.length > 0) {
-            setSelectedTour(data.guide.tours[0].id);
+          if (tours.length > 0) {
+            setSelectedTour(tours[0].id);
+            setSelectedTourObject(tours[0]);
           }
+          
           setError(null);
         } else if (data.error) {
           throw new Error(data.error);
@@ -130,6 +148,58 @@ export default function GuideProfile({ params }: { params: { name: string } | Pr
     
     fetchGuideData();
   }, [guideName]);
+
+  // Update available times when date changes
+  useEffect(() => {
+    if (guide && selectedDate) {
+      const times = guide.availability?.find(item => item.date === selectedDate)?.slots || [];
+      setAvailableTimes(times);
+    } else {
+      setAvailableTimes([]);
+    }
+  }, [selectedDate, guide]);
+
+  // Update selected tour object when tour selection changes
+  useEffect(() => {
+    if (validTours.length > 0 && selectedTour) {
+      const tourObj = validTours.find(tour => tour.id === selectedTour);
+      setSelectedTourObject(tourObj);
+    }
+  }, [selectedTour, validTours]);
+
+  const handleDateChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    setSelectedDate(e.target.value);
+    setSelectedTime(''); // Reset time when date changes
+  };
+
+  const handleBookTour = () => {
+    if (!selectedDate || !selectedTime || !selectedTour) {
+      alert('Please select a date, time and tour');
+      return;
+    }
+    
+    // In a real app, this would send the booking data to a server
+    console.log('Booking:', {
+      guideId: guide?.id,
+      guideName: guide?.name,
+      tourId: selectedTour,
+      tourName: selectedTourObject?.title,
+      date: selectedDate,
+      time: selectedTime,
+      participants
+    });
+    
+    // Show success message
+    setBookingSuccess(true);
+    
+    // Reset form
+    setTimeout(() => {
+      setSelectedDate('');
+      setSelectedTime('');
+      setParticipants(1);
+      setBookingSuccess(false);
+    }, 3000);
+  };
 
   // If loading, show a loading spinner
   if (loading) {
@@ -161,47 +231,6 @@ export default function GuideProfile({ params }: { params: { name: string } | Pr
     );
   }
 
-  const availableDates = guide.availability.map(item => item.date);
-  const availableTimes = selectedDate 
-    ? guide.availability.find(item => item.date === selectedDate)?.slots || []
-    : [];
-
-  const selectedTourObject = guide.tours.find(tour => tour.id === selectedTour);
-
-  const handleDateChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    setSelectedDate(e.target.value);
-    setSelectedTime(''); // Reset time when date changes
-  };
-
-  const handleBookTour = () => {
-    if (!selectedDate || !selectedTime || !selectedTour) {
-      alert('Please select a date, time and tour');
-      return;
-    }
-    
-    // In a real app, this would send the booking data to a server
-    console.log('Booking:', {
-      guideId: guide.id,
-      guideName: guide.name,
-      tourId: selectedTour,
-      tourName: selectedTourObject?.title,
-      date: selectedDate,
-      time: selectedTime,
-      participants
-    });
-    
-    // Show success message
-    setBookingSuccess(true);
-    
-    // Reset form
-    setTimeout(() => {
-      setSelectedDate('');
-      setSelectedTime('');
-      setParticipants(1);
-      setBookingSuccess(false);
-    }, 3000);
-  };
-
   return (
     <div className="min-h-screen bg-gray-900 text-white pb-12">
       {/* Header with guide photo and basic info */}
@@ -209,7 +238,7 @@ export default function GuideProfile({ params }: { params: { name: string } | Pr
         <div className="absolute inset-0">
           <Image 
             src={guide.profileImage}
-            alt={`${guide.name}, tour guide in ${guide.location}`}
+            alt={`${guide.name}, tour guide in ${guide.location} - cover image`}
             fill
             sizes="100vw"
             style={{ objectFit: "cover" }}
@@ -223,7 +252,7 @@ export default function GuideProfile({ params }: { params: { name: string } | Pr
             <div className="relative w-32 h-32 rounded-full overflow-hidden border-4 border-white shadow-lg">
               <Image 
                 src={guide.profileImage}
-                alt={guide.name}
+                alt={`${guide.name} - profile photo`}
                 fill
                 sizes="128px"
                 style={{ objectFit: "cover" }}
@@ -298,7 +327,7 @@ export default function GuideProfile({ params }: { params: { name: string } | Pr
                   <div key={index} className="relative h-48 rounded-lg overflow-hidden">
                     <Image 
                       src={image}
-                      alt={`${guide.name}'s tour in ${guide.location}`}
+                      alt={`${guide.name}'s tour in ${guide.location} - gallery image ${index + 1}`}
                       fill
                       sizes="(max-width: 768px) 100vw, 50vw"
                       style={{ objectFit: "cover" }}
@@ -312,47 +341,54 @@ export default function GuideProfile({ params }: { params: { name: string } | Pr
             
             <div className="bg-gray-800 rounded-lg shadow-lg p-6 mb-8">
               <h2 className="text-2xl font-bold mb-4">Tours with {guide.name}</h2>
-              <div className="space-y-6">
-                {guide.tours.map((tour) => (
-                  <div 
-                    key={tour.id} 
-                    className={`p-4 rounded-lg transition-colors ${selectedTour === tour.id ? 'bg-gray-700 border border-orange-500' : 'bg-gray-700 border border-transparent hover:border-gray-600'}`}
-                    onClick={() => setSelectedTour(tour.id)}
-                  >
-                    <div className="flex flex-col md:flex-row">
-                      <div className="md:w-1/4 mb-4 md:mb-0">
-                        <div className="relative h-40 md:h-full rounded-lg overflow-hidden">
-                          <Image 
-                            src={tour.image}
-                            alt={tour.title}
-                            fill
-                            sizes="(max-width: 768px) 100vw, 25vw"
-                            style={{ objectFit: "cover" }}
-                            unoptimized
-                          />
-                        </div>
-                      </div>
-                      <div className="md:w-3/4 md:pl-6">
-                        <div className="flex flex-wrap justify-between items-start mb-2">
-                          <h3 className="text-xl font-bold">{tour.title}</h3>
-                          <p className="font-bold text-orange-400">₹{tour.price} / person</p>
-                        </div>
-                        <p className="text-gray-300 mb-4">{tour.description}</p>
-                        <div className="flex flex-wrap gap-4 text-sm text-gray-400">
-                          <div className="flex items-center">
-                            <FaClock className="mr-1" />
-                            <span>{tour.duration}</span>
+              {validTours.length > 0 ? (
+                <div className="space-y-6">
+                  {validTours.map((tour) => (
+                    <div 
+                      key={tour.id} 
+                      className={`p-4 rounded-lg transition-colors ${selectedTour === tour.id ? 'bg-gray-700 border border-orange-500' : 'bg-gray-700 border border-transparent hover:border-gray-600'}`}
+                      onClick={() => setSelectedTour(tour.id)}
+                    >
+                      <div className="flex flex-col md:flex-row">
+                        <div className="md:w-1/4 mb-4 md:mb-0">
+                          <div className="relative h-40 md:h-full rounded-lg overflow-hidden">
+                            <Image 
+                              src={tour.image}
+                              alt={`${tour.title} - Tour offered by ${guide.name} in ${guide.location}`}
+                              fill
+                              sizes="(max-width: 768px) 100vw, 25vw"
+                              style={{ objectFit: "cover" }}
+                              unoptimized
+                            />
                           </div>
-                          <div className="flex items-center">
-                            <FaUser className="mr-1" />
-                            <span>Max {tour.maxParticipants} people</span>
+                        </div>
+                        <div className="md:w-3/4 md:pl-6">
+                          <div className="flex flex-wrap justify-between items-start mb-2">
+                            <h3 className="text-xl font-bold">{tour.title}</h3>
+                            <p className="font-bold text-orange-400">₹{tour.price} / person</p>
+                          </div>
+                          <p className="text-gray-300 mb-4">{tour.description}</p>
+                          <div className="flex flex-wrap gap-4 text-sm text-gray-400">
+                            <div className="flex items-center">
+                              <FaClock className="mr-1" />
+                              <span>{tour.duration}</span>
+                            </div>
+                            <div className="flex items-center">
+                              <FaUser className="mr-1" />
+                              <span>Max {tour.maxParticipants} people</span>
+                            </div>
                           </div>
                         </div>
                       </div>
                     </div>
-                  </div>
-                ))}
-              </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="p-6 bg-gray-700 rounded-lg text-center">
+                  <p className="text-gray-300">This guide has not added any tours yet.</p>
+                  <p className="text-gray-400 mt-2">Please check back later or contact them directly for custom tour arrangements.</p>
+                </div>
+              )}
             </div>
           </div>
           

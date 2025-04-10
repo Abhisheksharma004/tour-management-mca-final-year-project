@@ -69,6 +69,8 @@ export default function SearchGuides() {
           }
         }
         
+        console.log(`Fetching guides from: ${url}`);
+        
         // Fetch guides from API
         const response = await fetch(url);
         
@@ -77,6 +79,7 @@ export default function SearchGuides() {
         }
         
         const data = await response.json();
+        console.log(`Received data from API: success=${data.success}, guides count=${data.guides?.length || 0}`);
         
         if (data.success && Array.isArray(data.guides)) {
           setGuides(data.guides);

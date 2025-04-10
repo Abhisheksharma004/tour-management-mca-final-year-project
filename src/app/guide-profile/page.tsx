@@ -37,6 +37,10 @@ export default function GuideProfileRedirect() {
         setLoading(true);
         console.log(`Fetching guide with ID: ${guideId}`);
         
+        // Check if the ID is a MongoDB ObjectId (24 characters hex string)
+        const isObjectId = /^[0-9a-fA-F]{24}$/.test(guideId);
+        console.log(`Is ID a MongoDB ObjectId? ${isObjectId}`);
+        
         // Fetch guide from API by ID
         const response = await fetch(`/api/guides/profile?slug=${guideId}`, {
           method: 'GET',
@@ -70,6 +74,9 @@ export default function GuideProfileRedirect() {
         console.log(`Received data: success=${data.success}`);
         
         if (data.success && data.guide) {
+          // Add a short delay to ensure the guide data is processed by the database
+          await new Promise(resolve => setTimeout(resolve, 500));
+          
           console.log(`Redirecting to guide profile: ${data.guide.slug}`);
           // Redirect to the guide profile using the slug
           router.replace(`/guides/${data.guide.slug}`);
@@ -94,12 +101,20 @@ export default function GuideProfileRedirect() {
         <div className="text-center max-w-md mx-auto bg-gray-800 p-8 rounded-lg">
           <h1 className="text-2xl font-bold text-red-400">Error</h1>
           <p className="text-gray-300 mt-4">{error}</p>
-          <button 
-            onClick={() => router.push('/search-guides')}
-            className="mt-6 px-4 py-2 bg-orange-600 hover:bg-orange-700 rounded-md"
-          >
-            Return to Search
-          </button>
+          <div className="mt-6 flex flex-col space-y-2">
+            <button 
+              onClick={() => router.push('/search-guides')}
+              className="px-4 py-2 bg-orange-600 hover:bg-orange-700 rounded-md"
+            >
+              Return to Search
+            </button>
+            <button 
+              onClick={() => window.location.reload()}
+              className="px-4 py-2 bg-gray-700 hover:bg-gray-600 rounded-md"
+            >
+              Try Again
+            </button>
+          </div>
         </div>
       </div>
     );

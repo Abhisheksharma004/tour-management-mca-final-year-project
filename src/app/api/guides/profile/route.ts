@@ -60,6 +60,71 @@ export async function GET(request: Request) {
         { status: 404 }
       );
     }
+
+    // Fetch tours for this guide from the tours collection
+    const tours = await db.collection('tours').find({ 
+      guideId: new mongoose.Types.ObjectId(guide._id)
+    }).toArray();
+    
+    console.log(`Found ${tours.length} tours for guide ${guide.name}`);
+    
+    // Transform tours data for frontend
+    const transformedTours = tours.length > 0 ? tours.map(tour => ({
+      id: tour._id.toString(),
+      title: tour.title,
+      description: tour.description,
+      duration: `${tour.duration} ${tour.duration === 1 ? 'hour' : 'hours'}`,
+      price: tour.price,
+      image: tour.image || 'https://images.unsplash.com/photo-1567157577867-05ccb1388e66?auto=format&fit=crop&q=80&w=1470',
+      maxParticipants: tour.maxParticipants || 8,
+      location: tour.location,
+      date: tour.date ? new Date(tour.date).toISOString().split('T')[0] : null
+    })) : [
+      {
+        id: '1',
+        title: 'Local City Tour',
+        description: 'Explore the highlights of the city with a knowledgeable local guide.',
+        duration: '3 hours',
+        price: 2200,
+        image: 'https://images.unsplash.com/photo-1567157577867-05ccb1388e66?auto=format&fit=crop&q=80&w=1470',
+        maxParticipants: 8
+      },
+      {
+        id: '2',
+        title: 'Cultural Experience',
+        description: 'Immerse yourself in local culture with visits to traditional sites and experiences.',
+        duration: '4 hours',
+        price: 2800,
+        image: 'https://images.unsplash.com/photo-1602424130259-aa54ea657bac?auto=format&fit=crop&q=80&w=1470',
+        maxParticipants: 6
+      }
+    ];
+    
+    // Fetch availability data if exists, or generate default
+    let availability = guide.availability || [];
+    
+    // If no availability data exists, generate default availability data based on tours
+    if (!availability || availability.length === 0) {
+      // Generate dates for the next 14 days
+      const today = new Date();
+      const dates = [];
+      
+      for (let i = 1; i <= 14; i++) {
+        const date = new Date(today);
+        date.setDate(today.getDate() + i);
+        
+        // Skip weekends (6 = Saturday, 0 = Sunday)
+        if (date.getDay() !== 6 && date.getDay() !== 0) {
+          dates.push(date.toISOString().split('T')[0]);
+        }
+      }
+      
+      // Generate slots for each date
+      availability = dates.map(date => ({
+        date,
+        slots: ['09:00', '12:00', '15:00'].filter(() => Math.random() > 0.3) // Randomly remove some slots
+      })).filter(item => item.slots.length > 0); // Remove dates with no slots
+    }
     
     // Transform guide data for frontend
     const transformedGuide = {
@@ -80,34 +145,11 @@ export async function GET(request: Request) {
         'https://images.unsplash.com/photo-1539768942893-daf53e448371?auto=format&fit=crop&q=80&w=1470',
       ],
       specialties: Array.isArray(guide.specialties) ? guide.specialties : [guide.specialties || 'Tours'],
-      tours: guide.tours || [
-        {
-          id: '1',
-          title: 'Local City Tour',
-          description: 'Explore the highlights of the city with a knowledgeable local guide.',
-          duration: '3 hours',
-          price: 2200,
-          image: 'https://images.unsplash.com/photo-1567157577867-05ccb1388e66?auto=format&fit=crop&q=80&w=1470',
-          maxParticipants: 8
-        },
-        {
-          id: '2',
-          title: 'Cultural Experience',
-          description: 'Immerse yourself in local culture with visits to traditional sites and experiences.',
-          duration: '4 hours',
-          price: 2800,
-          image: 'https://images.unsplash.com/photo-1602424130259-aa54ea657bac?auto=format&fit=crop&q=80&w=1470',
-          maxParticipants: 6
-        }
-      ],
-      availability: guide.availability || [
-        { date: '2024-12-10', slots: ['09:00', '15:00'] },
-        { date: '2024-12-11', slots: ['09:00', '15:00', '18:00'] },
-        { date: '2024-12-14', slots: ['15:00'] },
-        { date: '2024-12-15', slots: ['09:00', '18:00'] },
-        { date: '2024-12-17', slots: ['09:00', '15:00', '18:00'] }
-      ],
-      slug: guide.slug || guide._id.toString()
+      tours: transformedTours,
+      availability: availability,
+      slug: guide.slug || guide._id.toString(),
+      email: guide.email || '',
+      phone: guide.phone || ''
     };
     
     return NextResponse.json({ 
