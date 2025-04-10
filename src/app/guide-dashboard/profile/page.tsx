@@ -78,56 +78,59 @@ export default function ProfilePage() {
   const [error, setError] = useState<string | null>(null);
   const [newLanguage, setNewLanguage] = useState('');
   const [newSpecialty, setNewSpecialty] = useState('');
+  const [isSaving, setIsSaving] = useState(false);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
   
   // Fetch guide data from API
   useEffect(() => {
-    const fetchGuideData = async () => {
-      try {
-        setIsLoading(true);
-        setError(null);
-        
-        const response = await fetch('/api/guides/profile');
-        const data = await response.json();
-        
-        if (!response.ok) {
-          throw new Error(data.error || 'Failed to fetch guide data');
-        }
-        
-        if (data.success && data.guide) {
-          // Transform API data to match our interface
-          const guideData: GuideData = {
-            id: data.guide.id,
-            name: data.guide.name || defaultGuideData.name,
-            email: data.guide.email || defaultGuideData.email,
-            phone: data.guide.phone || defaultGuideData.phone,
-            location: data.guide.location || defaultGuideData.location,
-            about: data.guide.about || defaultGuideData.about,
-            profileImage: data.guide.avatar || defaultGuideData.profileImage,
-            coverImage: data.guide.coverImage || defaultGuideData.coverImage,
-            languages: data.guide.languages || defaultGuideData.languages,
-            website: data.guide.website || defaultGuideData.website,
-            specialties: data.guide.specialties || defaultGuideData.specialties,
-            socialMedia: data.guide.socialMedia || defaultGuideData.socialMedia,
-            rating: data.guide.rating || defaultGuideData.rating,
-            reviews: data.guide.reviews || defaultGuideData.reviews,
-            verificationStatus: data.guide.verificationStatus || defaultGuideData.verificationStatus,
-            experience: data.guide.experience || defaultGuideData.experience,
-            certifications: data.guide.certifications || defaultGuideData.certifications,
-            galleryImages: data.guide.galleryImages || defaultGuideData.galleryImages
-          };
-          
-          setProfile(guideData);
-        }
-      } catch (error) {
-        console.error('Error fetching guide data:', error);
-        setError(error instanceof Error ? error.message : 'Failed to load profile data');
-      } finally {
-        setIsLoading(false);
-      }
-    };
-    
     fetchGuideData();
   }, []);
+  
+  // Function to fetch guide data
+  const fetchGuideData = async () => {
+    try {
+      setIsLoading(true);
+      setError(null);
+      
+      const response = await fetch('/api/guides/profile');
+      const data = await response.json();
+      
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to fetch guide data');
+      }
+      
+      if (data.success && data.guide) {
+        // Transform API data to match our interface
+        const guideData: GuideData = {
+          id: data.guide.id,
+          name: data.guide.name || defaultGuideData.name,
+          email: data.guide.email || defaultGuideData.email,
+          phone: data.guide.phone || defaultGuideData.phone,
+          location: data.guide.location || defaultGuideData.location,
+          about: data.guide.about || defaultGuideData.about,
+          profileImage: data.guide.avatar || defaultGuideData.profileImage,
+          coverImage: data.guide.coverImage || defaultGuideData.coverImage,
+          languages: data.guide.languages || defaultGuideData.languages,
+          website: data.guide.website || defaultGuideData.website,
+          specialties: data.guide.specialties || defaultGuideData.specialties,
+          socialMedia: data.guide.socialMedia || defaultGuideData.socialMedia,
+          rating: data.guide.rating || defaultGuideData.rating,
+          reviews: data.guide.reviews || defaultGuideData.reviews,
+          verificationStatus: data.guide.verificationStatus || defaultGuideData.verificationStatus,
+          experience: data.guide.experience || defaultGuideData.experience,
+          certifications: data.guide.certifications || defaultGuideData.certifications,
+          galleryImages: data.guide.galleryImages || defaultGuideData.galleryImages
+        };
+        
+        setProfile(guideData);
+      }
+    } catch (error) {
+      console.error('Error fetching guide data:', error);
+      setError(error instanceof Error ? error.message : 'Failed to load profile data');
+    } finally {
+      setIsLoading(false);
+    }
+  };
   
   const handleAddLanguage = () => {
     if (newLanguage && profile.languages && !profile.languages.includes(newLanguage)) {
@@ -167,10 +170,64 @@ export default function ProfilePage() {
     }
   };
   
-  const handleSaveProfile = () => {
-    // In a real app, this would send the data to an API
-    console.log('Saving profile data:', profile);
-    setIsEditMode(false);
+  const handleSaveProfile = async () => {
+    try {
+      setIsSaving(true);
+      setError(null);
+      setSuccessMessage(null);
+      
+      // Prepare data for API
+      const dataToSave = {
+        name: profile.name,
+        phone: profile.phone,
+        location: profile.location,
+        about: profile.about,
+        website: profile.website,
+        languages: profile.languages,
+        specialties: profile.specialties,
+        experience: profile.experience,
+        socialMedia: profile.socialMedia,
+        // Keeping image fields separate as they would typically be handled differently
+        // with dedicated file upload endpoints
+        avatar: profile.profileImage,
+        coverImage: profile.coverImage
+      };
+      
+      // Send data to API
+      const response = await fetch('/api/guides/profile', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(dataToSave)
+      });
+      
+      const result = await response.json();
+      
+      if (!response.ok) {
+        throw new Error(result.error || 'Failed to update profile');
+      }
+      
+      // Refresh guide data to reflect the changes
+      await fetchGuideData();
+      
+      // Show success message
+      setSuccessMessage('Profile updated successfully!');
+      
+      // Exit edit mode
+      setIsEditMode(false);
+      
+      // Set a timer to clear the success message
+      setTimeout(() => {
+        setSuccessMessage(null);
+      }, 5000);
+      
+    } catch (error) {
+      console.error('Error saving profile:', error);
+      setError(error instanceof Error ? error.message : 'Failed to save profile changes');
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   if (isLoading) {
@@ -198,6 +255,26 @@ export default function ProfilePage() {
   
   return (
     <div>
+      {/* Success message alert */}
+      {successMessage && (
+        <div className="bg-green-900/30 border border-green-700 rounded-lg p-4 mb-6 text-green-200 flex justify-between items-center">
+          <div className="flex items-center">
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
+              <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+            </svg>
+            {successMessage}
+          </div>
+          <button 
+            onClick={() => setSuccessMessage(null)}
+            className="text-green-200 hover:text-white"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+              <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
+            </svg>
+          </button>
+        </div>
+      )}
+      
       {/* Cover and Profile Image */}
       <div className="relative rounded-lg overflow-hidden mb-6 bg-gray-800 border border-gray-700">
         <div className="h-48 md:h-64 relative">
@@ -258,15 +335,26 @@ export default function ProfilePage() {
                 <button 
                   onClick={() => setIsEditMode(false)}
                   className="px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-md transition"
+                  disabled={isSaving}
                 >
                   Cancel
                 </button>
                 <button 
                   onClick={handleSaveProfile}
                   className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-md transition flex items-center"
+                  disabled={isSaving}
                 >
-                  <FaSave className="mr-2" />
-                  Save Changes
+                  {isSaving ? (
+                    <>
+                      <FaSpinner className="animate-spin mr-2" />
+                      Saving...
+                    </>
+                  ) : (
+                    <>
+                      <FaSave className="mr-2" />
+                      Save Changes
+                    </>
+                  )}
                 </button>
               </div>
             )}
