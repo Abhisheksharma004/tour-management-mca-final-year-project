@@ -70,6 +70,8 @@ export default function GuideProfile({ params }: { params: { name: string } | Pr
   const [availableDates, setAvailableDates] = useState<string[]>([]);
   const [availableTimes, setAvailableTimes] = useState<string[]>([]);
   const [selectedTourObject, setSelectedTourObject] = useState<Tour | undefined>(undefined);
+  const [showLoginPrompt, setShowLoginPrompt] = useState(false);
+  const router = useRouter();
 
   // Fetch guide data
   useEffect(() => {
@@ -170,31 +172,72 @@ export default function GuideProfile({ params }: { params: { name: string } | Pr
     setSelectedDate(e.target.value);
   };
 
-  const handleBookTour = () => {
+  const handleBookTour = async () => {
     if (!selectedDate || !selectedTour) {
       alert('Please select a date and tour');
       return;
     }
-    
-    // In a real app, this would send the booking data to a server
-    console.log('Booking:', {
-      guideId: guide?.id,
-      guideName: guide?.name,
-      tourId: selectedTour,
-      tourName: selectedTourObject?.title,
-      date: selectedDate,
-      participants
-    });
-    
-    // Show success message
-    setBookingSuccess(true);
-    
-    // Reset form
-    setTimeout(() => {
-      setSelectedDate('');
-      setParticipants(1);
-      setBookingSuccess(false);
-    }, 3000);
+
+    try {
+      // Check if user is logged in
+      const response = await fetch('/api/auth/check', {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include', // Important for cookies
+      });
+
+      const authData = await response.json();
+      
+      if (!authData.isAuthenticated) {
+        setShowLoginPrompt(true);
+        return;
+      }
+
+      // Create booking data
+      const bookingData = {
+        guideId: guide?.id,
+        guideName: guide?.name,
+        tourId: selectedTour,
+        tourName: selectedTourObject?.title,
+        date: selectedDate,
+        participants,
+        totalPrice: selectedTourObject ? selectedTourObject.price * participants : 0,
+        status: 'pending'
+      };
+
+      // Save booking to database
+      const bookingResponse = await fetch('/api/bookings', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include', // Important for cookies
+        body: JSON.stringify(bookingData),
+      });
+
+      if (!bookingResponse.ok) {
+        const errorData = await bookingResponse.json();
+        throw new Error(errorData.error || 'Failed to create booking');
+      }
+
+      const bookingResult = await bookingResponse.json();
+      
+      if (bookingResult.success) {
+        setBookingSuccess(true);
+        setTimeout(() => {
+          setSelectedDate('');
+          setParticipants(1);
+          setBookingSuccess(false);
+        }, 3000);
+      } else {
+        throw new Error(bookingResult.error || 'Failed to create booking');
+      }
+    } catch (error) {
+      console.error('Booking error:', error);
+      alert(error instanceof Error ? error.message : 'Failed to create booking');
+    }
   };
 
   // If loading, show a loading spinner
@@ -229,6 +272,30 @@ export default function GuideProfile({ params }: { params: { name: string } | Pr
 
   return (
     <div className="min-h-screen bg-gray-900 text-white pb-12">
+      {/* Login Prompt Modal */}
+      {showLoginPrompt && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-gray-800 p-6 rounded-lg max-w-md w-full mx-4">
+            <h2 className="text-2xl font-bold mb-4">Login Required</h2>
+            <p className="text-gray-300 mb-6">Please log in to book a tour with {guide.name}.</p>
+            <div className="flex justify-end space-x-4">
+              <button
+                onClick={() => setShowLoginPrompt(false)}
+                className="px-4 py-2 bg-gray-700 hover:bg-gray-600 rounded-md"
+              >
+                Cancel
+              </button>
+              <Link href="/login">
+                <button
+                  className="px-4 py-2 bg-orange-600 hover:bg-orange-700 rounded-md"
+                >
+                  Go to Login
+                </button>
+              </Link>
+            </div>
+          </div>
+        </div>
+      )}
       {/* Header with guide photo and basic info */}
       <div className="relative h-96">
         <div className="absolute inset-0">
