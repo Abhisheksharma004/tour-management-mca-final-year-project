@@ -44,7 +44,6 @@ type Guide = {
   experience: number;
   bio: string;
   profileImage: string;
-  galleryImages: string[];
   specialties: string[];
   tours: Tour[];
   availability: Availability[];
@@ -273,9 +272,9 @@ export default function GuideProfile({ params }: { params: { name: string } | Pr
       </div>
 
       {/* Main content */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-8">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Left column - About section and Gallery */}
+          {/* Main content */}
           <div className="lg:col-span-2">
             <div className="bg-gray-800 rounded-lg shadow-lg p-6 mb-8">
               <h2 className="text-2xl font-bold mb-4">About {guide.name}</h2>
@@ -317,25 +316,6 @@ export default function GuideProfile({ params }: { params: { name: string } | Pr
                     </div>
                   </div>
                 </div>
-              </div>
-            </div>
-            
-            <div className="bg-gray-800 rounded-lg shadow-lg p-6 mb-8">
-              <h2 className="text-2xl font-bold mb-4">Gallery</h2>
-              <div className="grid grid-cols-2 gap-4">
-                {guide.galleryImages.map((image, index) => (
-                  <div key={index} className="relative h-48 rounded-lg overflow-hidden">
-                    <Image 
-                      src={image}
-                      alt={`${guide.name}'s tour in ${guide.location} - gallery image ${index + 1}`}
-                      fill
-                      sizes="(max-width: 768px) 100vw, 50vw"
-                      style={{ objectFit: "cover" }}
-                      className="hover:opacity-90 transition-opacity"
-                      unoptimized
-                    />
-                  </div>
-                ))}
               </div>
             </div>
             
