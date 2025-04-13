@@ -166,14 +166,13 @@ export default function GuideProfile({ params }: { params: { name: string } | Pr
     }
   }, [selectedTour, validTours]);
 
-  const handleDateChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+  const handleDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setSelectedDate(e.target.value);
-    setSelectedTime(''); // Reset time when date changes
   };
 
   const handleBookTour = () => {
-    if (!selectedDate || !selectedTime || !selectedTour) {
-      alert('Please select a date, time and tour');
+    if (!selectedDate || !selectedTour) {
+      alert('Please select a date and tour');
       return;
     }
     
@@ -184,7 +183,6 @@ export default function GuideProfile({ params }: { params: { name: string } | Pr
       tourId: selectedTour,
       tourName: selectedTourObject?.title,
       date: selectedDate,
-      time: selectedTime,
       participants
     });
     
@@ -194,7 +192,6 @@ export default function GuideProfile({ params }: { params: { name: string } | Pr
     // Reset form
     setTimeout(() => {
       setSelectedDate('');
-      setSelectedTime('');
       setParticipants(1);
       setBookingSuccess(false);
     }, 3000);
@@ -414,36 +411,13 @@ export default function GuideProfile({ params }: { params: { name: string } | Pr
                         <span>Select Date</span>
                       </div>
                     </label>
-                    <select 
+                    <input
+                      type="date"
                       className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500"
                       value={selectedDate}
                       onChange={handleDateChange}
-                    >
-                      <option value="">Choose a date</option>
-                      {availableDates.map(date => (
-                        <option key={date} value={date}>{date}</option>
-                      ))}
-                    </select>
-                  </div>
-                  
-                  <div>
-                    <label className="block text-sm font-medium text-gray-300 mb-1">
-                      <div className="flex items-center">
-                        <FaClock className="mr-2" />
-                        <span>Select Time</span>
-                      </div>
-                    </label>
-                    <select 
-                      className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500"
-                      value={selectedTime}
-                      onChange={(e) => setSelectedTime(e.target.value)}
-                      disabled={!selectedDate}
-                    >
-                      <option value="">Choose a time</option>
-                      {availableTimes.map(time => (
-                        <option key={time} value={time}>{time}</option>
-                      ))}
-                    </select>
+                      min={new Date().toISOString().split('T')[0]}
+                    />
                   </div>
                   
                   <div>
