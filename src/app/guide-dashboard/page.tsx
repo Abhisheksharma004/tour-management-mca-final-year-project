@@ -216,7 +216,7 @@ export default function GuideDashboard() {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-gray-400">Total Tours</p>
-              <p className="text-2xl font-bold text-white">{data.analytics.totalTours}</p>
+              <p className="text-2xl font-bold text-white">{data.analytics?.totalTours || 0}</p>
             </div>
             <div className="w-12 h-12 rounded-full bg-orange-500/20 flex items-center justify-center">
               <FaMapMarkedAlt className="text-orange-500 text-xl" />
@@ -227,7 +227,7 @@ export default function GuideDashboard() {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-gray-400">Total Bookings</p>
-              <p className="text-2xl font-bold text-white">{data.analytics.totalBookings}</p>
+              <p className="text-2xl font-bold text-white">{data.analytics?.totalBookings || 0}</p>
             </div>
             <div className="w-12 h-12 rounded-full bg-orange-500/20 flex items-center justify-center">
               <FaUsers className="text-orange-500 text-xl" />
@@ -238,7 +238,7 @@ export default function GuideDashboard() {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-gray-400">Total Earnings</p>
-              <p className="text-2xl font-bold text-white">₹{data.analytics.totalEarnings.toLocaleString()}</p>
+              <p className="text-2xl font-bold text-white">₹{(data.analytics?.totalEarnings || 0).toLocaleString()}</p>
             </div>
             <div className="w-12 h-12 rounded-full bg-orange-500/20 flex items-center justify-center">
               <FaMoneyBillWave className="text-orange-500 text-xl" />
@@ -249,10 +249,7 @@ export default function GuideDashboard() {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-gray-400">Average Rating</p>
-              <div className="flex items-center">
-                <p className="text-2xl font-bold text-white mr-2">{data.analytics.averageRating.toFixed(1)}</p>
-                <FaStar className="text-yellow-500" />
-              </div>
+              <p className="text-2xl font-bold text-white">{data.analytics?.averageRating?.toFixed(1) || '0.0'}</p>
             </div>
             <div className="w-12 h-12 rounded-full bg-orange-500/20 flex items-center justify-center">
               <FaStar className="text-orange-500 text-xl" />
@@ -261,43 +258,66 @@ export default function GuideDashboard() {
         </div>
       </div>
 
-      {/* Charts and Upcoming Tours */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div className="bg-gray-800 p-6 rounded-lg border border-gray-700">
-          <div className="h-80">
-            <Line data={chartData} options={chartOptions} />
-          </div>
+      {/* Chart Section */}
+      <div className="bg-gray-800 p-6 rounded-lg border border-gray-700">
+        <div className="h-80">
+          <Line 
+            data={{
+              labels: data.analytics?.monthlyStats?.map(stat => stat.month) || [],
+              datasets: [
+                {
+                  label: 'Bookings',
+                  data: data.analytics?.monthlyStats?.map(stat => stat.bookings) || [],
+                  borderColor: 'rgb(249, 115, 22)',
+                  backgroundColor: 'rgba(249, 115, 22, 0.5)',
+                },
+                {
+                  label: 'Earnings',
+                  data: data.analytics?.monthlyStats?.map(stat => stat.earnings) || [],
+                  borderColor: 'rgb(16, 185, 129)',
+                  backgroundColor: 'rgba(16, 185, 129, 0.5)',
+                },
+              ],
+            }}
+            options={chartOptions}
+          />
         </div>
-        <div className="bg-gray-800 p-6 rounded-lg border border-gray-700">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-lg font-semibold text-white">Upcoming Tours</h3>
-            <Link 
-              href="/guide-dashboard/tours" 
-              className="text-sm text-orange-500 hover:text-orange-400 flex items-center"
-            >
-              View All <FaChevronRight className="ml-1" size={12} />
-            </Link>
-          </div>
-          <div className="space-y-4">
-            {data.upcomingTours.map((tour) => (
-              <div key={tour._id} className="flex items-center justify-between p-4 bg-gray-700/50 rounded-lg hover:bg-gray-700 transition-colors">
-                <div>
-                  <p className="font-medium text-white">{tour.title}</p>
-                  <div className="flex items-center text-sm text-gray-400 mt-1">
-                    <FaMapMarkerAlt className="mr-1" size={12} />
-                    <span>{tour.location}</span>
-                  </div>
-                </div>
-                <div className="text-right">
-                  <p className="text-white font-medium">₹{tour.price.toLocaleString()}</p>
-                  <div className="flex items-center text-sm text-gray-400 mt-1">
-                    <FaCalendarAlt className="mr-1" size={12} />
-                    <span>{new Date(tour.date).toLocaleDateString()}</span>
-                  </div>
+      </div>
+
+      {/* Upcoming Tours */}
+      <div className="bg-gray-800 p-6 rounded-lg border border-gray-700">
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-lg font-semibold text-white">Upcoming Tours</h3>
+          <Link 
+            href="/guide-dashboard/tours" 
+            className="text-sm text-orange-500 hover:text-orange-400 flex items-center"
+          >
+            View All <FaChevronRight className="ml-1" size={12} />
+          </Link>
+        </div>
+        <div className="space-y-4">
+          {data.upcomingTours?.map((tour) => (
+            <div key={tour._id} className="flex items-center justify-between p-4 bg-gray-700/50 rounded-lg hover:bg-gray-700 transition-colors">
+              <div>
+                <p className="font-medium text-white">{tour.title || 'Untitled Tour'}</p>
+                <div className="flex items-center text-sm text-gray-400 mt-1">
+                  <FaMapMarkerAlt className="mr-1" size={12} />
+                  <span>{tour.location || 'Location not specified'}</span>
                 </div>
               </div>
-            ))}
-          </div>
+              <div className="text-right">
+                <p className="text-white font-medium">₹{(tour.price || 0).toLocaleString()}</p>
+                <div className="flex items-center text-sm text-gray-400 mt-1">
+                  <FaCalendarAlt className="mr-1" size={12} />
+                  <span>{tour.date ? new Date(tour.date).toLocaleDateString() : 'Date not set'}</span>
+                </div>
+              </div>
+            </div>
+          )) || (
+            <div className="text-center text-gray-400 py-4">
+              No upcoming tours scheduled
+            </div>
+          )}
         </div>
       </div>
 
@@ -312,37 +332,29 @@ export default function GuideDashboard() {
             View All <FaChevronRight className="ml-1" size={12} />
           </Link>
         </div>
-        <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead>
-              <tr className="text-left text-gray-400">
-                <th className="pb-4">Tour</th>
-                <th className="pb-4">Customer</th>
-                <th className="pb-4">Date</th>
-                <th className="pb-4">Status</th>
-                <th className="pb-4">Amount</th>
-              </tr>
-            </thead>
-            <tbody>
-              {data.recentBookings.map((booking) => (
-                <tr key={booking._id} className="border-t border-gray-700">
-                  <td className="py-4 text-white">{booking.tourTitle}</td>
-                  <td className="py-4 text-white">{booking.customerName}</td>
-                  <td className="py-4 text-gray-400">{new Date(booking.date).toLocaleDateString()}</td>
-                  <td className="py-4">
-                    <span className={`px-2 py-1 rounded-full text-xs ${
-                      booking.status === 'confirmed' ? 'bg-green-500' : 
-                      booking.status === 'pending' ? 'bg-yellow-500' : 
-                      'bg-red-500'
-                    }`}>
-                      {booking.status}
-                    </span>
-                  </td>
-                  <td className="py-4 text-white">₹{booking.amount.toLocaleString()}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+        <div className="space-y-4">
+          {data.recentBookings?.map((booking) => (
+            <div key={booking._id} className="flex items-center justify-between p-4 bg-gray-700/50 rounded-lg hover:bg-gray-700 transition-colors">
+              <div>
+                <p className="font-medium text-white">{booking.tourTitle || 'Untitled Tour'}</p>
+                <div className="flex items-center text-sm text-gray-400 mt-1">
+                  <FaUsers className="mr-1" size={12} />
+                  <span>{booking.customerName || 'Anonymous Customer'}</span>
+                </div>
+              </div>
+              <div className="text-right">
+                <p className="text-white font-medium">₹{(booking.amount || 0).toLocaleString()}</p>
+                <div className="flex items-center text-sm text-gray-400 mt-1">
+                  <FaCalendarAlt className="mr-1" size={12} />
+                  <span>{booking.date ? new Date(booking.date).toLocaleDateString() : 'Date not set'}</span>
+                </div>
+              </div>
+            </div>
+          )) || (
+            <div className="text-center text-gray-400 py-4">
+              No recent bookings
+            </div>
+          )}
         </div>
       </div>
     </div>

@@ -172,38 +172,29 @@ export default function GuideProfile({ params }: { params: { name: string } | Pr
     setSelectedDate(e.target.value);
   };
 
-  const handleBookTour = async () => {
-    if (!selectedDate || !selectedTour) {
-      alert('Please select a date and tour');
-      return;
-    }
-
+  const handleBookTour = async (tourId: string) => {
     try {
       // Check if user is logged in
-      const response = await fetch('/api/auth/check', {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        credentials: 'include', // Important for cookies
-      });
+      const response = await fetch('/api/auth/check');
+      const data = await response.json();
 
-      const authData = await response.json();
-      
-      if (!authData.isAuthenticated) {
+      if (!data.isAuthenticated) {
         setShowLoginPrompt(true);
         return;
       }
 
-      // Create booking data
+      const tour = guide.tours.find((t: Tour) => t._id === tourId);
+      if (!tour) return;
+
       const bookingData = {
-        guideId: guide?.id,
-        guideName: guide?.name,
-        tourId: selectedTour,
-        tourName: selectedTourObject?.title,
+        guideId: guide._id,
+        guideName: guide.name,
+        guidePhone: guide.phone, // Add guide's phone number
+        tourId: tour._id,
+        tourName: tour.name,
         date: selectedDate,
-        participants,
-        totalPrice: selectedTourObject ? selectedTourObject.price * participants : 0,
+        participants: participants,
+        totalPrice: tour.price * participants,
         status: 'pending'
       };
 
@@ -517,7 +508,7 @@ export default function GuideProfile({ params }: { params: { name: string } | Pr
                       className="w-full bg-orange-600 hover:bg-orange-700 text-white font-medium py-3 px-4 rounded-md"
                       whileHover={{ scale: 1.02 }}
                       whileTap={{ scale: 0.98 }}
-                      onClick={handleBookTour}
+                      onClick={() => handleBookTour(selectedTour)}
                     >
                       Book Now
                     </motion.button>
