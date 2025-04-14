@@ -48,9 +48,9 @@ export default function SearchGuides() {
     const fetchGuides = async () => {
       try {
         setLoading(true);
-        
+
         let url = '/api/guides';
-        
+
         // Only apply filters after initial load or when filters change
         if (!initialLoad) {
           // Build query parameters
@@ -61,30 +61,30 @@ export default function SearchGuides() {
           queryParams.append('priceMin', filters.priceMin.toString());
           queryParams.append('priceMax', filters.priceMax.toString());
           queryParams.append('rating', filters.rating.toString());
-          
+
           // Add query params to URL if any exist
           const queryString = queryParams.toString();
           if (queryString) {
             url += `?${queryString}`;
           }
         }
-        
+
         console.log(`Fetching guides from: ${url}`);
-        
+
         // Fetch guides from API
         const response = await fetch(url);
-        
+
         if (!response.ok) {
           throw new Error(`Failed to fetch guides: ${response.statusText}`);
         }
-        
+
         const data = await response.json();
         console.log(`Received data from API: success=${data.success}, guides count=${data.guides?.length || 0}`);
-        
+
         if (data.success && Array.isArray(data.guides)) {
           setGuides(data.guides);
           setError(null);
-          
+
           // Mark initial load as complete after first successful load
           if (initialLoad) {
             setInitialLoad(false);
@@ -102,7 +102,7 @@ export default function SearchGuides() {
         setLoading(false);
       }
     };
-    
+
     fetchGuides();
   }, [location, language, specialty, filters, initialLoad]);
 
@@ -163,7 +163,7 @@ export default function SearchGuides() {
               </div>
             </div>
             <div className="mt-4 flex justify-center">
-              <button 
+              <button
                 onClick={() => {
                   // Reset focus on search button when clicked
                   if (document.activeElement instanceof HTMLElement) {
@@ -183,16 +183,16 @@ export default function SearchGuides() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-8">
         <div className="flex flex-col md:flex-row gap-8">
           {/* Filters Sidebar */}
-          <div className="w-full md:w-64 bg-gray-800 p-4 rounded-lg shadow-md h-fit">
+          {/* <div className="w-full md:w-64 bg-gray-800 p-4 rounded-lg shadow-md h-fit">
             <h2 className="font-semibold text-lg mb-4 text-white">Filters</h2>
-            
+
             <div className="mb-4">
               <h3 className="font-medium mb-2 text-gray-300">Price Range (₹ per day)</h3>
               <div className="flex items-center gap-2">
                 <input
                   type="number"
                   value={filters.priceMin}
-                  onChange={(e) => setFilters({...filters, priceMin: Number(e.target.value)})}
+                  onChange={(e) => setFilters({ ...filters, priceMin: Number(e.target.value) })}
                   className="w-full p-2 border border-gray-600 rounded-md bg-gray-700 text-white"
                   min="500"
                 />
@@ -200,19 +200,19 @@ export default function SearchGuides() {
                 <input
                   type="number"
                   value={filters.priceMax}
-                  onChange={(e) => setFilters({...filters, priceMax: Number(e.target.value)})}
+                  onChange={(e) => setFilters({ ...filters, priceMax: Number(e.target.value) })}
                   className="w-full p-2 border border-gray-600 rounded-md bg-gray-700 text-white"
                   min="500"
                   max="5000"
                 />
               </div>
             </div>
-            
+
             <div className="mb-4">
               <h3 className="font-medium mb-2 text-gray-300">Minimum Rating</h3>
-              <select 
-                value={filters.rating} 
-                onChange={(e) => setFilters({...filters, rating: Number(e.target.value)})}
+              <select
+                value={filters.rating}
+                onChange={(e) => setFilters({ ...filters, rating: Number(e.target.value) })}
                 className="w-full p-2 border border-gray-600 rounded-md bg-gray-700 text-white"
               >
                 <option value="0">Any rating</option>
@@ -222,7 +222,7 @@ export default function SearchGuides() {
                 <option value="5">5 stars only</option>
               </select>
             </div>
-            
+
             <div className="mb-4">
               <h3 className="font-medium mb-2 text-gray-300">Popular Specialties</h3>
               <div className="space-y-2">
@@ -242,7 +242,7 @@ export default function SearchGuides() {
                 ))}
               </div>
             </div>
-            
+
             <button
               onClick={() => {
                 setFilters({ priceMin: 500, priceMax: 5000, rating: 0 });
@@ -254,8 +254,8 @@ export default function SearchGuides() {
             >
               Reset Filters
             </button>
-          </div>
-          
+          </div> */}
+
           {/* Guide Results */}
           <div className="flex-1">
             {loading ? (
@@ -267,8 +267,8 @@ export default function SearchGuides() {
               <div className="text-center py-12 bg-red-900/30 rounded-lg border border-red-700">
                 <h3 className="text-lg font-medium text-red-200">Error loading guides</h3>
                 <p className="mt-2 text-red-300">{error}</p>
-                <button 
-                  onClick={() => window.location.reload()} 
+                <button
+                  onClick={() => window.location.reload()}
                   className="mt-4 px-4 py-2 bg-red-700 hover:bg-red-800 text-white rounded"
                 >
                   Try Again
@@ -288,16 +288,16 @@ export default function SearchGuides() {
                     <option>Reviews: Most to Least</option>
                   </select>
                 </div>
-                
+
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                   {guidesToDisplay.map((guide) => (
-                    <Link 
-                      href={`/guides/${guide.slug || guide.id}`} 
+                    <Link
+                      href={`/guides/${guide.slug || guide.id}`}
                       key={guide.id}
                       onClick={(e) => {
                         // Log the guide information before navigation
                         console.log(`Navigating to guide: ${guide.name}, ID: ${guide.id}, Slug: ${guide.slug}`);
-                        
+
                         // Check if the slug is valid
                         if (!guide.slug && !guide.id) {
                           e.preventDefault();
@@ -348,7 +348,7 @@ export default function SearchGuides() {
                     </Link>
                   ))}
                 </div>
-                
+
                 {guidesToDisplay.length === 0 && (
                   <div className="text-center py-12 bg-gray-800 rounded-lg shadow-md">
                     <h3 className="text-lg font-medium text-white">No guides found</h3>

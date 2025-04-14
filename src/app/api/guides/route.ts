@@ -36,11 +36,11 @@ export async function GET(request: Request) {
       query.specialties = { $regex: specialty, $options: 'i' };
     }
     
-    if (priceMin || priceMax) {
-      query.price = {};
-      if (priceMin) query.price.$gte = priceMin;
-      if (priceMax) query.price.$lte = priceMax;
-    }
+    // if (priceMin || priceMax) {
+    //   query.price = {};
+    //   if (priceMin) query.price.$gte = priceMin;
+    //   if (priceMax) query.price.$lte = priceMax;
+    // }
     
     if (rating > 0) {
       query.rating = { $gte: rating };
