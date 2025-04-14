@@ -117,7 +117,7 @@ export default function SearchGuides() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <h1 className="text-3xl font-bold mb-6">Find Your Perfect Guide in India</h1>
           <div className="bg-gray-800 rounded-lg p-4 shadow-md">
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            {/* <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
               <div>
                 <label htmlFor="location" className="block text-sm font-medium text-gray-300 mb-1">Destination</label>
                 <input
@@ -174,6 +174,36 @@ export default function SearchGuides() {
               >
                 Search Guides
               </button>
+            </div> */}
+            <div className="mt-4 flex items-end w-full mx-auto max-w-3xl justify-center gap-4">
+              <div className='w-full md:w-1/2'>
+                <label htmlFor="location" className="block text-sm font-medium text-gray-300 mb-1">
+                  Destination
+                </label>
+                <input
+                  type="text"
+                  id="location"
+                  value={location}
+                  onChange={(e) => setLocation(e.target.value)}
+                  placeholder="Where in India?"
+                  className="w-full p-2.5 border border-gray-600 rounded-md bg-gray-700 text-white focus:ring-orange-500 focus:border-orange-500 placeholder-gray-400"
+                />
+              </div>
+              <div className='w-full md:w-1/2'>
+                <label className="block text-sm font-medium text-gray-300 mb-1 invisible">
+                  Search
+                </label>
+                <button
+                  onClick={() => {
+                    if (document.activeElement instanceof HTMLElement) {
+                      document.activeElement.blur();
+                    }
+                  }}
+                  className="w-full p-2.5 bg-orange-600 text-white rounded-md hover:bg-orange-700 transition-colors font-medium"
+                >
+                  Search Guides
+                </button>
+              </div>
             </div>
           </div>
         </div>
@@ -362,4 +392,4 @@ export default function SearchGuides() {
       </div>
     </div>
   );
-} 
+}
