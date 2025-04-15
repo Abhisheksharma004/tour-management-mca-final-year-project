@@ -16,24 +16,26 @@ export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
     const slug = searchParams.get('slug');
-    
-    if (!slug) {
+    const token = cookies().get('token')?.value;
+    const JWT_SECRET = process.env.JWT_SECRET;
+
+    if (!JWT_SECRET) {
       return NextResponse.json(
-        { success: false, error: 'Guide slug is required' },
-        { status: 400 }
+        { success: false, message: 'Server configuration error' },
+        { status: 500 }
       );
     }
-    
+
     // Connect to MongoDB using Mongoose
     await connectDB();
+    const db = mongoose.connection.db;
     
-    // Find guide by slug or id
     let query: any = { role: 'guide' };
-    
-    // Check if the slug looks like a MongoDB ObjectId
-    if (slug.match(/^[0-9a-fA-F]{24}$/)) {
-      try {
-        // Try to use it as an ObjectId
+
+    // If slug is provided, use it for querying
+    if (slug) {
+      // Check if the slug looks like a MongoDB ObjectId
+      if (slug.match(/^[0-9a-fA-F]{24}$/)) {
         query = { 
           $or: [
             { slug: slug },
@@ -41,19 +43,41 @@ export async function GET(request: Request) {
           ],
           role: 'guide'
         };
-      } catch (error) {
-        // If conversion fails, just use the slug
+      } else {
         query = { slug: slug, role: 'guide' };
       }
-    } else {
-      // Just use the slug
-      query = { slug: slug, role: 'guide' };
     }
-    
+    // If no slug, try to use token
+    else if (token) {
+      let decodedToken: DecodedToken;
+      try {
+        decodedToken = jwt.verify(token, JWT_SECRET) as DecodedToken;
+        if (decodedToken.role !== 'guide') {
+          return NextResponse.json(
+            { success: false, message: 'Unauthorized access' },
+            { status: 403 }
+          );
+        }
+        query = { 
+          _id: new mongoose.Types.ObjectId(decodedToken.id),
+          role: 'guide'
+        };
+      } catch (error) {
+        return NextResponse.json({
+          success: false,
+          message: 'Invalid token'
+        }, { status: 401 });
+      }
+    } else {
+      return NextResponse.json(
+        { success: false, message: 'Either slug or valid authentication required' },
+        { status: 400 }
+      );
+    }
+
     // Find the guide in the database
-    const db = mongoose.connection.db;
-    const guide = await db.collection('users').findOne(query);
-    
+    const guide = await db.collection('users').findOne(query, { projection: { password: 0 } });
+
     if (!guide) {
       return NextResponse.json(
         { success: false, error: 'Guide not found' },
@@ -240,4 +264,4 @@ export async function PUT(request: Request) {
       error: error instanceof Error ? error.message : 'Failed to update guide profile'
     }, { status: 500 });
   }
-} 
+}
