@@ -15,11 +15,14 @@ interface DecodedToken {
 // POST /api/bookings
 export async function POST(request: Request) {
   try {
+    console.log('Booking request received');
+    
     // Get token from cookies
-    const cookieStore = cookies();
+    const cookieStore = await cookies();
     const token = cookieStore.get('token')?.value;
 
     if (!token) {
+      console.log('Authentication required - no token found');
       return NextResponse.json(
         { success: false, error: 'Authentication required' },
         { status: 401 }
@@ -28,12 +31,22 @@ export async function POST(request: Request) {
 
     // Verify token
     const decoded = jwt.verify(token, process.env.JWT_SECRET!) as DecodedToken;
+    console.log(`User authenticated: ${decoded.id}, role: ${decoded.role}`);
 
     // Check if user exists and is a traveler
     await connectDB();
     const user = await User.findById(decoded.id);
 
-    if (!user || user.role !== 'traveler') {
+    if (!user) {
+      console.log(`User not found: ${decoded.id}`);
+      return NextResponse.json(
+        { success: false, error: 'User not found' },
+        { status: 404 }
+      );
+    }
+    
+    if (user.role !== 'traveler') {
+      console.log(`User role not traveler: ${user.role}`);
       return NextResponse.json(
         { success: false, error: 'Only travelers can create bookings' },
         { status: 403 }
@@ -42,16 +55,22 @@ export async function POST(request: Request) {
 
     // Get booking data from request
     const bookingData = await request.json();
+    console.log('Booking data received:', bookingData);
 
     // Validate required fields
-    if (!bookingData.guideId || !bookingData.tourId || !bookingData.date || !bookingData.participants || !bookingData.totalPrice) {
+    const requiredFields = ['guideId', 'guideName', 'tourId', 'tourName', 'date', 'participants', 'totalPrice'];
+    const missingFields = requiredFields.filter(field => !bookingData[field]);
+    
+    if (missingFields.length > 0) {
+      console.log(`Missing required fields: ${missingFields.join(', ')}`);
       return NextResponse.json(
-        { success: false, error: 'Missing required fields' },
+        { success: false, error: `Missing required fields: ${missingFields.join(', ')}` },
         { status: 400 }
       );
     }
 
     // Create new booking
+    console.log('Creating new booking in database');
     const booking = new Booking({
       travelerId: user._id,
       travelerName: user.name,
@@ -63,22 +82,30 @@ export async function POST(request: Request) {
 
     // Save booking to database
     await booking.save();
+    console.log(`Booking saved successfully with ID: ${booking._id}`);
 
-    // Send booking confirmation email
-    const emailHtml = generateBookingConfirmationEmail({
-      travelerName: user.name,
-      guideName: bookingData.guideName,
-      tourName: bookingData.tourName,
-      date: bookingData.date,
-      participants: bookingData.participants,
-      totalPrice: bookingData.totalPrice
-    });
+    // Try to send booking confirmation email
+    try {
+      console.log('Preparing to send confirmation email');
+      const emailHtml = generateBookingConfirmationEmail({
+        travelerName: user.name,
+        guideName: bookingData.guideName,
+        tourName: bookingData.tourName,
+        date: bookingData.date,
+        participants: bookingData.participants,
+        totalPrice: bookingData.totalPrice
+      });
 
-    await sendEmail({
-      to: user.email,
-      subject: `Tour Booking Confirmation - ${bookingData.tourName}`,
-      html: emailHtml
-    });
+      await sendEmail({
+        to: user.email,
+        subject: `Tour Booking Confirmation - ${bookingData.tourName}`,
+        html: emailHtml
+      });
+      console.log(`Confirmation email sent to ${user.email}`);
+    } catch (emailError) {
+      console.error('Failed to send confirmation email:', emailError);
+      // Continue with the booking process even if email fails
+    }
 
     return NextResponse.json({
       success: true,
@@ -96,7 +123,7 @@ export async function POST(request: Request) {
   } catch (error) {
     console.error('Error creating booking:', error);
     return NextResponse.json(
-      { success: false, error: 'Failed to create booking' },
+      { success: false, error: error instanceof Error ? error.message : 'Failed to create booking' },
       { status: 500 }
     );
   }

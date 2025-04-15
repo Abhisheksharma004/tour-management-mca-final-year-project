@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import Image from 'next/image';
 import { notFound, useRouter } from 'next/navigation';
-import { FaStar, FaMapMarkerAlt, FaCalendarAlt, FaClock, FaUser, FaSpinner } from 'react-icons/fa';
+import { FaStar, FaMapMarkerAlt, FaCalendarAlt, FaClock, FaUser, FaSpinner, FaCheckCircle } from 'react-icons/fa';
 import { motion } from 'framer-motion';
 import Link from 'next/link';
 import { use } from 'react';
@@ -66,6 +66,7 @@ export default function GuideProfile({ params }: { params: { name: string } | Pr
   const [selectedTour, setSelectedTour] = useState('');
   const [participants, setParticipants] = useState(1);
   const [bookingSuccess, setBookingSuccess] = useState(false);
+  const [bookingLoading, setBookingLoading] = useState(false);
   const [validTours, setValidTours] = useState<Tour[]>([]);
   const [availableDates, setAvailableDates] = useState<string[]>([]);
   const [availableTimes, setAvailableTimes] = useState<string[]>([]);
@@ -153,7 +154,7 @@ export default function GuideProfile({ params }: { params: { name: string } | Pr
   // Update available times when date changes
   useEffect(() => {
     if (guide && selectedDate) {
-      const times = guide.availability?.find(item => item.date === selectedDate)?.slots || [];
+      const times = guide.availability?.find((item: Availability) => item.date === selectedDate)?.slots || [];
       setAvailableTimes(times);
     } else {
       setAvailableTimes([]);
@@ -174,29 +175,57 @@ export default function GuideProfile({ params }: { params: { name: string } | Pr
 
   const handleBookTour = async (tourId: string) => {
     try {
+      // Check if date is selected
+      if (!selectedDate) {
+        alert('Please select a date for your tour.');
+        return;
+      }
+
+      // Check if guide exists
+      if (!guide) {
+        alert('Guide information is missing. Please refresh the page and try again.');
+        return;
+      }
+
+      // Set loading state to true
+      setBookingLoading(true);
+
       // Check if user is logged in
       const response = await fetch('/api/auth/check');
       const data = await response.json();
 
       if (!data.isAuthenticated) {
+        setBookingLoading(false);
         setShowLoginPrompt(true);
         return;
       }
 
-      const tour = guide.tours.find((t: Tour) => t._id === tourId);
-      if (!tour) return;
+      // Find the selected tour object from our state
+      const tour = validTours.find(t => t.id === tourId);
+      if (!tour) {
+        setBookingLoading(false);
+        alert('Selected tour not found. Please try again.');
+        return;
+      }
+      
+      console.log("Selected tour:", tour);
+      console.log("Guide information:", guide);
 
+      // Create booking data with correct property names
       const bookingData = {
-        guideId: guide._id,
+        guideId: guide.id,
         guideName: guide.name,
-        guidePhone: guide.phone, // Add guide's phone number
-        tourId: tour._id,
-        tourName: tour.name,
+        guideEmail: guide.email || '',
+        guidePhone: guide.phone || '',
+        tourId: tour.id,
+        tourName: tour.title || 'Custom Tour',
         date: selectedDate,
         participants: participants,
         totalPrice: tour.price * participants,
         status: 'pending'
       };
+
+      console.log("Sending booking data:", bookingData);
 
       // Save booking to database
       const bookingResponse = await fetch('/api/bookings', {
@@ -208,12 +237,18 @@ export default function GuideProfile({ params }: { params: { name: string } | Pr
         body: JSON.stringify(bookingData),
       });
 
-      if (!bookingResponse.ok) {
-        const errorData = await bookingResponse.json();
-        throw new Error(errorData.error || 'Failed to create booking');
-      }
+      console.log("Booking response status:", bookingResponse.status);
 
+      // Get the response data
       const bookingResult = await bookingResponse.json();
+      console.log("Booking result:", bookingResult);
+
+      // Set loading to false once we get a response
+      setBookingLoading(false);
+
+      if (!bookingResponse.ok) {
+        throw new Error(bookingResult.error || 'Failed to create booking');
+      }
       
       if (bookingResult.success) {
         setBookingSuccess(true);
@@ -221,13 +256,14 @@ export default function GuideProfile({ params }: { params: { name: string } | Pr
           setSelectedDate('');
           setParticipants(1);
           setBookingSuccess(false);
-        }, 3000);
+        }, 5000); // Longer display of success message
       } else {
         throw new Error(bookingResult.error || 'Failed to create booking');
       }
     } catch (error) {
+      setBookingLoading(false);
       console.error('Booking error:', error);
-      alert(error instanceof Error ? error.message : 'Failed to create booking');
+      alert(error instanceof Error ? error.message : 'Failed to create booking. Please try again.');
     }
   };
 
@@ -438,12 +474,24 @@ export default function GuideProfile({ params }: { params: { name: string } | Pr
               
               {bookingSuccess ? (
                 <motion.div 
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  className="bg-green-800 text-white p-4 rounded-lg mb-4"
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.5 }}
+                  className="bg-green-800 text-white p-6 rounded-lg"
                 >
-                  <h3 className="font-bold text-lg">Booking Successful!</h3>
-                  <p>Your tour with {guide.name} has been booked. Check your email for details.</p>
+                  <div className="flex flex-col items-center text-center">
+                    <motion.div 
+                      initial={{ scale: 0 }}
+                      animate={{ scale: 1 }}
+                      transition={{ delay: 0.2, type: "spring", stiffness: 200 }}
+                      className="w-16 h-16 bg-green-600 rounded-full flex items-center justify-center mb-4"
+                    >
+                      <FaCheckCircle size={32} />
+                    </motion.div>
+                    <h3 className="font-bold text-xl mb-2">Booking Confirmed!</h3>
+                    <p className="mb-4">Your tour with {guide?.name} has been booked successfully.</p>
+                    <p className="text-sm text-green-300">Check your email for booking details and confirmation.</p>
+                  </div>
                 </motion.div>
               ) : (
                 <div className="space-y-4">
@@ -453,8 +501,9 @@ export default function GuideProfile({ params }: { params: { name: string } | Pr
                       className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500"
                       value={selectedTour}
                       onChange={(e) => setSelectedTour(e.target.value)}
+                      disabled={bookingLoading}
                     >
-                      {guide.tours.map(tour => (
+                      {guide?.tours.map(tour => (
                         <option key={tour.id} value={tour.id}>
                           {tour.title} - ₹{tour.price}
                         </option>
@@ -475,6 +524,7 @@ export default function GuideProfile({ params }: { params: { name: string } | Pr
                       value={selectedDate}
                       onChange={handleDateChange}
                       min={new Date().toISOString().split('T')[0]}
+                      disabled={bookingLoading}
                     />
                   </div>
                   
@@ -489,6 +539,7 @@ export default function GuideProfile({ params }: { params: { name: string } | Pr
                       className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500"
                       value={participants}
                       onChange={(e) => setParticipants(Number(e.target.value))}
+                      disabled={bookingLoading}
                     >
                       {[...Array(selectedTourObject?.maxParticipants || 10)].map((_, i) => (
                         <option key={i} value={i + 1}>{i + 1}</option>
@@ -505,12 +556,20 @@ export default function GuideProfile({ params }: { params: { name: string } | Pr
                     </div>
                     
                     <motion.button 
-                      className="w-full bg-orange-600 hover:bg-orange-700 text-white font-medium py-3 px-4 rounded-md"
-                      whileHover={{ scale: 1.02 }}
-                      whileTap={{ scale: 0.98 }}
-                      onClick={() => handleBookTour(selectedTour)}
+                      className={`w-full ${bookingLoading ? 'bg-gray-600' : 'bg-orange-600 hover:bg-orange-700'} text-white font-medium py-3 px-4 rounded-md flex items-center justify-center`}
+                      whileHover={bookingLoading ? {} : { scale: 1.02 }}
+                      whileTap={bookingLoading ? {} : { scale: 0.98 }}
+                      onClick={() => !bookingLoading && handleBookTour(selectedTour)}
+                      disabled={bookingLoading}
                     >
-                      Book Now
+                      {bookingLoading ? (
+                        <>
+                          <FaSpinner className="animate-spin mr-2" />
+                          Processing...
+                        </>
+                      ) : (
+                        'Book Now'
+                      )}
                     </motion.button>
                     
                     <p className="text-sm text-gray-400 mt-2 text-center">
