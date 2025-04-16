@@ -14,8 +14,8 @@ export async function POST(request: Request) {
   try {
     console.log('Canceling booking...');
     
-    // Get the token from cookies
-    const cookieStore = cookies();
+    // Get token from cookies
+    const cookieStore = await cookies();
     const token = cookieStore.get('token')?.value;
     
     if (!token) {

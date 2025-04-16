@@ -13,7 +13,8 @@ interface DecodedToken {
 export async function GET() {
   try {
     // Get token from cookies
-    const token = cookies().get('token')?.value;
+    const cookieStore = await cookies();
+    const token = cookieStore.get('token')?.value;
     
     if (!token) {
       return NextResponse.json({ error: 'Authentication required' }, { status: 401 });

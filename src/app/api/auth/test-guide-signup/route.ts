@@ -20,8 +20,9 @@ export async function GET(request: Request) {
       { expiresIn: '30d' }
     );
 
-    // Set cookie for the test
-    cookies().set('token', token, {
+    // Set token in cookies
+    const cookieStore = await cookies();
+    cookieStore.set('token', token, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       maxAge: 30 * 24 * 60 * 60,

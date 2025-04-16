@@ -7,7 +7,7 @@ import User from '@/models/User';
 export async function GET() {
   try {
     // Get token from cookies
-    const cookieStore = cookies();
+    const cookieStore = await cookies();
     const token = cookieStore.get('token')?.value;
     
     if (!token) {

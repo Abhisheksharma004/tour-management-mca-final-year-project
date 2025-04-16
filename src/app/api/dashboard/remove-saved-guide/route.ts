@@ -14,8 +14,8 @@ export async function DELETE(request: Request) {
   try {
     console.log('Removing saved guide...');
     
-    // Get the token from cookies
-    const cookieStore = cookies();
+    // Get token from cookies
+    const cookieStore = await cookies();
     const token = cookieStore.get('token')?.value;
     
     if (!token) {

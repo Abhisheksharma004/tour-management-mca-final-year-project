@@ -60,7 +60,8 @@ export async function GET() {
     );
     
     // Set the token as a cookie for testing
-    cookies().set({
+    const cookieStore = await cookies();
+    cookieStore.set({
       name: 'token',
       value: token,
       httpOnly: true,

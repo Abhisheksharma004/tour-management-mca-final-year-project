@@ -64,8 +64,12 @@ async function uploadImageToS3(base64Image: string, fileName: string) {
 
 export async function POST(request: Request) {
   try {
-    // Get auth token from cookies
-    const token = cookies().get('token')?.value;
+    // Connect to database
+    await connectDB();
+    
+    // Get token from cookies
+    const cookieStore = await cookies();
+    const token = cookieStore.get('token')?.value;
     
     if (!token) {
       return NextResponse.json({ error: 'Authentication required' }, { status: 401 });

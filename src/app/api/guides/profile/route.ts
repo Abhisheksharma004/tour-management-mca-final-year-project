@@ -16,7 +16,8 @@ export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
     const slug = searchParams.get('slug');
-    const token = cookies().get('token')?.value;
+    const cookieStore = await cookies();
+    const token = cookieStore.get('token')?.value;
     const JWT_SECRET = process.env.JWT_SECRET;
 
     if (!JWT_SECRET) {

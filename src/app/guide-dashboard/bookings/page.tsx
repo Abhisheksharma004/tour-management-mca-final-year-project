@@ -19,7 +19,9 @@ import {
   FaExclamationTriangle,
   FaCheckCircle,
   FaSpinner,
-  FaInfoCircle
+  FaInfoCircle,
+  FaTimesCircle,
+  FaFlag
 } from 'react-icons/fa';
 import DateDisplay from '@/components/DateDisplay';
 import { format } from 'date-fns';
@@ -37,42 +39,165 @@ interface Booking {
   createdAt: string;
 }
 
+const StatusBadge = ({ status }: { status: string }) => {
+  const getStatusColor = (status: string) => {
+    switch (status.toLowerCase()) {
+      case 'confirmed':
+        return 'bg-green-600 text-green-100';
+      case 'pending':
+        return 'bg-yellow-600 text-yellow-100';
+      case 'cancelled':
+        return 'bg-red-600 text-red-100';
+      case 'completed':
+        return 'bg-blue-600 text-blue-100';
+      default:
+        return 'bg-gray-600 text-gray-100';
+    }
+  };
+
+  const getStatusIcon = () => {
+    switch (status.toLowerCase()) {
+      case 'confirmed':
+        return <FaCheckCircle className="mr-1" />;
+      case 'pending':
+        return <FaClock className="mr-1" />;
+      case 'cancelled':
+        return <FaTimesCircle className="mr-1" />;
+      case 'completed':
+        return <FaFlag className="mr-1" />;
+      default:
+        return null;
+    }
+  };
+
+  return (
+    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusColor(status)}`}>
+      {getStatusIcon()}
+      {status}
+    </span>
+  );
+};
+
 export default function BookingsManagement() {
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
+  const [actionLoading, setActionLoading] = useState<string | null>(null);
   
   // Fetch bookings from API
-  useEffect(() => {
-    const fetchBookings = async () => {
-      try {
-        setLoading(true);
-        const response = await fetch('/api/guides/bookings');
-        const data = await response.json();
+  const fetchBookings = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      
+      console.log('Fetching bookings data...');
+      const response = await fetch('/api/guides/bookings', {
+        headers: {
+          'Cache-Control': 'no-cache'
+        }
+      });
+      
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('Bookings API error:', response.status, errorText);
         
-        console.log('API Response:', data);
-        
-        if (!data.success) {
-          throw new Error(data.error || 'Failed to fetch bookings');
+        // Handle authentication errors
+        if (response.status === 401 || response.status === 403) {
+          console.log('Authentication issue detected, redirecting to login...');
+          window.location.href = '/login?redirect=/guide-dashboard/bookings';
+          return;
         }
         
-        // Ensure we have an array of bookings
-        if (Array.isArray(data.bookings)) {
-          setBookings(data.bookings);
-        } else {
-          console.error('Invalid bookings data format:', data);
-          throw new Error('Invalid data format received from server');
-        }
-      } catch (err) {
-        setError(err instanceof Error ? err.message : 'An unknown error occurred');
-        console.error('Error fetching bookings:', err);
-      } finally {
-        setLoading(false);
+        throw new Error(`Failed to fetch bookings: ${response.status}`);
       }
-    };
-    
+      
+      const data = await response.json();
+      console.log('API Response:', data);
+      
+      if (!data.success) {
+        if (data.error === 'Invalid or expired token') {
+          console.log('Token issue detected, redirecting to login...');
+          window.location.href = '/login?redirect=/guide-dashboard/bookings';
+          return;
+        }
+        throw new Error(data.error || 'Failed to fetch bookings');
+      }
+      
+      // Ensure we have an array of bookings
+      if (Array.isArray(data.bookings)) {
+        setBookings(data.bookings);
+        console.log(`Loaded ${data.bookings.length} bookings successfully`);
+      } else {
+        console.error('Invalid bookings data format:', data);
+        throw new Error('Invalid data format received from server');
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'An unknown error occurred');
+      console.error('Error fetching bookings:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+  
+  // Function to update booking status
+  const updateBookingStatus = async (bookingId: string, newStatus: string) => {
+    try {
+      setActionLoading(bookingId);
+      console.log(`Updating booking ${bookingId} to ${newStatus}...`);
+      
+      const response = await fetch(`/api/guides/bookings/${bookingId}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          'Cache-Control': 'no-cache'
+        },
+        body: JSON.stringify({ status: newStatus }),
+      });
+      
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('Status update error:', response.status, errorText);
+        
+        if (response.status === 401 || response.status === 403) {
+          console.log('Authentication issue detected while updating status, redirecting to login...');
+          window.location.href = '/login?redirect=/guide-dashboard/bookings';
+          return;
+        }
+        
+        throw new Error(`Failed to update booking status: ${response.status}`);
+      }
+      
+      const data = await response.json();
+      
+      if (data.success) {
+        // Update the booking in local state
+        setBookings(prevBookings => 
+          prevBookings.map(booking => 
+            booking.id === bookingId 
+              ? { ...booking, status: newStatus } 
+              : booking
+          )
+        );
+        console.log(`Successfully updated booking ${bookingId} status to ${newStatus}`);
+      } else {
+        if (data.error === 'Invalid or expired token') {
+          console.log('Token issue detected during status update, redirecting to login...');
+          window.location.href = '/login?redirect=/guide-dashboard/bookings';
+          return;
+        }
+        throw new Error(data.error || 'Failed to update booking status');
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'An error occurred while updating the booking');
+      console.error('Error updating booking status:', err);
+    } finally {
+      setActionLoading(null);
+    }
+  };
+  
+  useEffect(() => {
     fetchBookings();
   }, []);
   
@@ -94,36 +219,7 @@ export default function BookingsManagement() {
   const confirmedCount = bookings.filter(b => b.status?.toLowerCase() === 'confirmed').length;
   const pendingCount = bookings.filter(b => b.status?.toLowerCase() === 'pending').length;
   const cancelledCount = bookings.filter(b => b.status?.toLowerCase() === 'cancelled').length;
-  
-  const getStatusColor = (status: string) => {
-    switch (status?.toLowerCase()) {
-      case 'confirmed':
-        return 'bg-green-900/60 text-green-300 border border-green-700';
-      case 'pending':
-        return 'bg-yellow-900/60 text-yellow-300 border border-yellow-700';
-      case 'cancelled':
-        return 'bg-red-900/60 text-red-300 border border-red-700';
-      case 'completed':
-        return 'bg-blue-900/60 text-blue-300 border border-blue-700';
-      default:
-        return 'bg-gray-700 text-gray-300 border border-gray-600';
-    }
-  };
-  
-  const getStatusIcon = (status: string) => {
-    switch (status?.toLowerCase()) {
-      case 'confirmed':
-        return <FaCheckCircle className="mr-1" />;
-      case 'pending':
-        return <FaInfoCircle className="mr-1" />;
-      case 'cancelled':
-        return <FaExclamationTriangle className="mr-1" />;
-      case 'completed':
-        return <FaCheckCircle className="mr-1" />;
-      default:
-        return null;
-    }
-  };
+  const completedCount = bookings.filter(b => b.status?.toLowerCase() === 'completed').length;
   
   // Format date helper
   const formatDate = (dateString: string) => {
@@ -154,7 +250,7 @@ export default function BookingsManagement() {
       </div>
       
       {/* Stats Overview */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+      <div className="grid grid-cols-2 lg:grid-cols-5 gap-4 mb-6">
         <div className="bg-gray-800 rounded-lg p-4 border border-gray-700 shadow-lg">
           <div className="flex items-center justify-between">
             <div>
@@ -187,6 +283,18 @@ export default function BookingsManagement() {
             </div>
             <div className="w-10 h-10 rounded-full bg-yellow-500/20 flex items-center justify-center">
               <FaInfoCircle className="text-yellow-400" />
+            </div>
+          </div>
+        </div>
+        
+        <div className="bg-gray-800 rounded-lg p-4 border border-gray-700 shadow-lg">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-gray-400 text-xs mb-1">Completed</p>
+              <p className="text-2xl font-bold text-blue-400">{completedCount}</p>
+            </div>
+            <div className="w-10 h-10 rounded-full bg-blue-500/20 flex items-center justify-center">
+              <FaCheckCircle className="text-blue-400" />
             </div>
           </div>
         </div>
@@ -253,9 +361,10 @@ export default function BookingsManagement() {
           <p className="text-red-400 font-medium">Error loading bookings</p>
           <p className="text-gray-400 mt-2">{error}</p>
           <button 
-            onClick={() => window.location.reload()} 
-            className="mt-4 px-4 py-2 bg-gray-700 text-white rounded-md hover:bg-gray-600"
+            onClick={fetchBookings} 
+            className="mt-4 px-4 py-2 bg-gray-700 text-white rounded-md hover:bg-gray-600 flex items-center"
           >
+            <FaSpinner className={`mr-2 ${loading ? 'animate-spin' : 'hidden'}`} />
             Try Again
           </button>
         </div>
@@ -301,24 +410,101 @@ export default function BookingsManagement() {
                           <p className="text-sm text-white">{formatDate(booking.date)}</p>
                         </td>
                         <td className="px-4 py-4 whitespace-nowrap">
-                          <span className={`px-2 py-1 text-xs rounded-full ${getStatusColor(booking.status)} inline-flex items-center`}>
-                            {getStatusIcon(booking.status)}
-                            {booking.status}
-                          </span>
+                          <StatusBadge status={booking.status || 'pending'} />
                         </td>
                         <td className="px-4 py-4 whitespace-nowrap">
                           <p className="text-sm font-medium text-white">₹{booking.totalPrice}</p>
                         </td>
                         <td className="px-4 py-4 whitespace-nowrap text-right">
                           <div className="flex justify-end space-x-2">
-                            <button className="p-1 text-blue-400 hover:text-blue-300 transition-colors" title="View Details">
+                            <button 
+                              className="p-1 text-blue-400 hover:text-blue-300 transition-colors relative group" 
+                              title="View Details"
+                            >
                               <FaEye />
+                              <span className="absolute right-0 top-full mt-1 w-24 bg-gray-900 text-xs py-1 px-2 rounded opacity-0 group-hover:opacity-100 transition-opacity z-10">
+                                View Details
+                              </span>
                             </button>
-                            <button className="p-1 text-orange-400 hover:text-orange-300 transition-colors" title="Edit Booking">
-                              <FaEdit />
-                            </button>
-                            <button className="p-1 text-red-400 hover:text-red-300 transition-colors" title="Cancel Booking">
+                            
+                            <div className="relative group">
+                              <button
+                                className="p-1 text-orange-400 hover:text-orange-300 transition-colors"
+                                title="Change Status"
+                              >
+                                <FaEdit />
+                                <span className="absolute right-0 top-full mt-1 w-24 bg-gray-900 text-xs py-1 px-2 rounded opacity-0 group-hover:opacity-100 transition-opacity">
+                                  Change Status
+                                </span>
+                              </button>
+                              
+                              <div className="absolute right-0 top-full mt-1 w-32 bg-gray-800 rounded-md shadow-lg border border-gray-700 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-20">
+                                {booking.status !== 'confirmed' && (
+                                  <button
+                                    className="w-full text-left px-3 py-2 text-sm text-green-400 hover:bg-gray-700 rounded-t-md flex items-center space-x-2"
+                                    onClick={() => updateBookingStatus(booking.id, 'confirmed')}
+                                    disabled={actionLoading === booking.id}
+                                  >
+                                    {actionLoading === booking.id ? 
+                                      <FaSpinner className="animate-spin mr-2" /> : 
+                                      <FaCheckCircle className="mr-2" />
+                                    }
+                                    <span>Confirm</span>
+                                  </button>
+                                )}
+                                
+                                {booking.status !== 'pending' && (
+                                  <button
+                                    className="w-full text-left px-3 py-2 text-sm text-yellow-400 hover:bg-gray-700 flex items-center space-x-2"
+                                    onClick={() => updateBookingStatus(booking.id, 'pending')}
+                                    disabled={actionLoading === booking.id}
+                                  >
+                                    {actionLoading === booking.id ? 
+                                      <FaSpinner className="animate-spin mr-2" /> : 
+                                      <FaInfoCircle className="mr-2" />
+                                    }
+                                    <span>Mark Pending</span>
+                                  </button>
+                                )}
+                                
+                                {booking.status !== 'completed' && (
+                                  <button
+                                    className="w-full text-left px-3 py-2 text-sm text-blue-400 hover:bg-gray-700 flex items-center space-x-2"
+                                    onClick={() => updateBookingStatus(booking.id, 'completed')}
+                                    disabled={actionLoading === booking.id}
+                                  >
+                                    {actionLoading === booking.id ? 
+                                      <FaSpinner className="animate-spin mr-2" /> : 
+                                      <FaCheckCircle className="mr-2" />
+                                    }
+                                    <span>Complete</span>
+                                  </button>
+                                )}
+                                
+                                {booking.status !== 'cancelled' && (
+                                  <button
+                                    className="w-full text-left px-3 py-2 text-sm text-red-400 hover:bg-gray-700 rounded-b-md flex items-center space-x-2"
+                                    onClick={() => updateBookingStatus(booking.id, 'cancelled')}
+                                    disabled={actionLoading === booking.id}
+                                  >
+                                    {actionLoading === booking.id ? 
+                                      <FaSpinner className="animate-spin mr-2" /> : 
+                                      <FaExclamationTriangle className="mr-2" />
+                                    }
+                                    <span>Cancel</span>
+                                  </button>
+                                )}
+                              </div>
+                            </div>
+                            
+                            <button 
+                              className="p-1 text-red-400 hover:text-red-300 transition-colors relative group"
+                              title="Delete Booking"
+                            >
                               <FaTrashAlt />
+                              <span className="absolute right-0 top-full mt-1 w-28 bg-gray-900 text-xs py-1 px-2 rounded opacity-0 group-hover:opacity-100 transition-opacity z-10">
+                                Delete Booking
+                              </span>
                             </button>
                           </div>
                         </td>
