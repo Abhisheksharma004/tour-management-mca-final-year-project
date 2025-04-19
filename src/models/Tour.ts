@@ -1,6 +1,23 @@
-import mongoose from 'mongoose';
+import mongoose, { Schema, Document, Model } from 'mongoose';
 
-const TourSchema = new mongoose.Schema({
+export interface ITour extends Document {
+  title: string;
+  description: string;
+  price: number;
+  duration: string;
+  location: string;
+  images: string[];
+  date: Date;
+  guideId: mongoose.Types.ObjectId;
+  maxParticipants: number;
+  availableSpots: number;
+  startTime?: string;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+// Define schema outside so we can access it multiple ways
+const TourSchema = new Schema({
   title: {
     type: String,
     required: [true, 'Please provide a tour title'],
@@ -16,17 +33,17 @@ const TourSchema = new mongoose.Schema({
     min: [0, 'Price must be a positive number'],
   },
   duration: {
-    type: Number,
+    type: String,
     required: [true, 'Please provide tour duration'],
-    min: [1, 'Duration must be at least 1 day'],
+    default: '2 hours',
   },
   location: {
     type: String,
     required: [true, 'Please provide tour location'],
   },
-  image: {
-    type: String,
-    default: '/images/default-tour.jpg',
+  images: {
+    type: [String],
+    default: ['/images/default-tour.jpg'],
   },
   date: {
     type: Date,
@@ -34,18 +51,24 @@ const TourSchema = new mongoose.Schema({
   },
   guideId: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: 'Guide',
+    ref: 'User',
     required: [true, 'Tour must be associated with a guide'],
   },
   maxParticipants: {
     type: Number,
     required: [true, 'Please provide maximum number of participants'],
     min: [1, 'Must allow at least 1 participant'],
+    default: 10,
   },
   availableSpots: {
     type: Number,
     required: [true, 'Please provide available spots'],
     min: [0, 'Available spots cannot be negative'],
+    default: 10,
+  },
+  startTime: {
+    type: String,
+    default: '09:00 AM',
   },
   createdAt: {
     type: Date,
@@ -57,7 +80,30 @@ const TourSchema = new mongoose.Schema({
   },
 });
 
-// Check if the model already exists before creating a new one
-const Tour = mongoose.models.Tour || mongoose.model('Tour', TourSchema);
+/**
+ * This function ensures the Tour model is properly registered
+ * and available to the application regardless of how Mongoose
+ * and Next.js handle module loading.
+ */
+function getTourModel(): Model<ITour> {
+  // If the model already exists, return it
+  if (mongoose.models && mongoose.models.Tour) {
+    return mongoose.models.Tour as Model<ITour>;
+  }
+  
+  // If the model doesn't exist, create and return it
+  try {
+    return mongoose.model<ITour>('Tour', TourSchema);
+  } catch (error) {
+    // If the error is because the model is already defined, return it
+    if ((error as any).message?.includes('Cannot overwrite')) {
+      return mongoose.model<ITour>('Tour');
+    }
+    // Otherwise, re-throw the error
+    throw error;
+  }
+}
 
-export default Tour; 
+// Create and export the model
+const TourModel = getTourModel();
+export default TourModel; 

@@ -1,6 +1,23 @@
-import mongoose from 'mongoose';
+import mongoose, { Schema, Document, Model } from 'mongoose';
 
-const bookingSchema = new mongoose.Schema({
+export interface IBooking extends Document {
+  travelerId: mongoose.Types.ObjectId;
+  travelerName: string;
+  travelerEmail: string;
+  guideId: mongoose.Types.ObjectId;
+  guideName: string;
+  tourId: mongoose.Types.ObjectId;
+  tourName: string;
+  date: string;
+  time?: string;
+  participants: number;
+  totalPrice: number;
+  status: 'pending' | 'confirmed' | 'cancelled' | 'completed';
+  hasReviewed?: boolean;
+  createdAt: Date;
+}
+
+const bookingSchema = new Schema({
   travelerId: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User',
@@ -36,6 +53,10 @@ const bookingSchema = new mongoose.Schema({
     type: String,
     required: true
   },
+  time: {
+    type: String,
+    default: '09:00 AM'
+  },
   participants: {
     type: Number,
     required: true,
@@ -51,6 +72,10 @@ const bookingSchema = new mongoose.Schema({
     enum: ['pending', 'confirmed', 'cancelled', 'completed'],
     default: 'pending'
   },
+  hasReviewed: {
+    type: Boolean,
+    default: false
+  },
   createdAt: {
     type: Date,
     default: Date.now
@@ -62,4 +87,30 @@ bookingSchema.index({ travelerId: 1, createdAt: -1 });
 bookingSchema.index({ guideId: 1, createdAt: -1 });
 bookingSchema.index({ date: 1 });
 
-export default mongoose.models.Booking || mongoose.model('Booking', bookingSchema); 
+/**
+ * This function ensures the Booking model is properly registered
+ * and available to the application regardless of how Mongoose
+ * and Next.js handle module loading.
+ */
+function getBookingModel(): Model<IBooking> {
+  // If the model already exists, return it
+  if (mongoose.models && mongoose.models.Booking) {
+    return mongoose.models.Booking as Model<IBooking>;
+  }
+  
+  // If the model doesn't exist, create and return it
+  try {
+    return mongoose.model<IBooking>('Booking', bookingSchema);
+  } catch (error) {
+    // If the error is because the model is already defined, return it
+    if ((error as any).message?.includes('Cannot overwrite')) {
+      return mongoose.model<IBooking>('Booking');
+    }
+    // Otherwise, re-throw the error
+    throw error;
+  }
+}
+
+// Create and export the model
+const BookingModel = getBookingModel();
+export default BookingModel; 

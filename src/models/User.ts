@@ -1,8 +1,31 @@
-import mongoose from 'mongoose';
+import mongoose, { Schema, Document, Model } from 'mongoose';
 import bcrypt from 'bcrypt';
 
+export interface IUser extends Document {
+  name: string;
+  email: string;
+  password: string;
+  role: 'traveler' | 'guide' | 'admin';
+  avatar: string;
+  phone?: string;
+  location?: string;
+  bio?: string;
+  languages?: string[];
+  specialty?: string;
+  savedGuides?: mongoose.Types.ObjectId[];
+  preferences?: {
+    tourTypes?: string[];
+    languages?: string[];
+  };
+  profileCompleted?: boolean;
+  rating?: number;
+  createdAt: Date;
+  updatedAt: Date;
+  comparePassword(candidatePassword: string): Promise<boolean>;
+}
+
 // Define the user schema
-const userSchema = new mongoose.Schema({
+const userSchema = new Schema({
   name: {
     type: String,
     required: [true, 'Name is required'],
@@ -23,7 +46,7 @@ const userSchema = new mongoose.Schema({
   },
   role: {
     type: String,
-    enum: ['traveler', 'guide'],
+    enum: ['traveler', 'guide', 'admin'],
     default: 'traveler'
   },
   avatar: {
@@ -37,6 +60,31 @@ const userSchema = new mongoose.Schema({
   },
   location: {
     type: String,
+  },
+  bio: {
+    type: String,
+  },
+  languages: {
+    type: [String],
+  },
+  specialty: {
+    type: String,
+  },
+  savedGuides: [{
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User'
+  }],
+  preferences: {
+    tourTypes: [String],
+    languages: [String]
+  },
+  profileCompleted: {
+    type: Boolean,
+    default: false
+  },
+  rating: {
+    type: Number,
+    default: 0
   },
   createdAt: {
     type: Date,
@@ -63,7 +111,30 @@ userSchema.methods.comparePassword = async function(candidatePassword: string): 
   return bcrypt.compare(candidatePassword, this.password);
 };
 
-// Create and export the model
-const User = mongoose.models.User || mongoose.model('User', userSchema);
+/**
+ * This function ensures the User model is properly registered
+ * and available to the application regardless of how Mongoose
+ * and Next.js handle module loading.
+ */
+function getUserModel(): Model<IUser> {
+  // If the model already exists, return it
+  if (mongoose.models && mongoose.models.User) {
+    return mongoose.models.User as Model<IUser>;
+  }
+  
+  // If the model doesn't exist, create and return it
+  try {
+    return mongoose.model<IUser>('User', userSchema);
+  } catch (error) {
+    // If the error is because the model is already defined, return it
+    if ((error as any).message?.includes('Cannot overwrite')) {
+      return mongoose.model<IUser>('User');
+    }
+    // Otherwise, re-throw the error
+    throw error;
+  }
+}
 
-export default User; 
+// Create and export the model
+const UserModel = getUserModel();
+export default UserModel; 

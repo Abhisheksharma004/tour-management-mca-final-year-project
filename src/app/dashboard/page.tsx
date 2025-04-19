@@ -62,7 +62,44 @@ export default function Dashboard() {
     const fetchDashboardData = async () => {
       try {
         setLoading(true);
-        const response = await fetch('/api/dashboard/user-dashboard');
+        
+        // First, try to ensure model registration by making multiple ping requests
+        let pingSuccessful = false;
+        for (let i = 0; i < 3; i++) {
+          try {
+            console.log(`Attempting ping ${i+1}/3...`);
+            const pingResponse = await fetch('/api/ping', { 
+              method: 'GET',
+              cache: 'no-store' 
+            });
+            const pingData = await pingResponse.json();
+            console.log('Ping response:', pingData);
+            
+            if (pingData.success && pingData.models && pingData.models.includes('Tour')) {
+              console.log('Tour model successfully registered');
+              pingSuccessful = true;
+              break;
+            } else {
+              console.warn('Tour model not found in ping response, retrying...');
+              // Wait a bit before retrying
+              await new Promise(resolve => setTimeout(resolve, 500));
+            }
+          } catch (e) {
+            console.warn('Ping error:', e);
+            // Wait a bit before retrying
+            await new Promise(resolve => setTimeout(resolve, 500));
+          }
+        }
+        
+        if (!pingSuccessful) {
+          console.warn('Could not verify model registration via ping, continuing anyway...');
+        }
+        
+        // Now fetch the dashboard data
+        console.log('Fetching dashboard data...');
+        const response = await fetch('/api/dashboard/user-dashboard', {
+          cache: 'no-store'
+        });
         
         if (!response.ok) {
           const errorData = await response.json();

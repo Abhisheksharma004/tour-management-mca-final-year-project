@@ -1,7 +1,12 @@
 import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
-import { MongoClient, ObjectId } from 'mongodb';
 import jwt from 'jsonwebtoken';
+import connectDB from '@/lib/db';
+import User from '@/models/User';
+import Booking from '@/models/Booking';
+import Tour from '@/models/Tour';
+import { ObjectId } from 'mongodb';
+import registerModels from '@/lib/models';
 
 interface DecodedToken {
   id: string;
@@ -23,21 +28,86 @@ export async function GET() {
     // Verify token
     const decoded = jwt.verify(token, process.env.JWT_SECRET as string) as DecodedToken;
     
-    // Connect to MongoDB
-    const client = await MongoClient.connect(process.env.MONGODB_URI as string);
-    const db = client.db();
+    // Connect to MongoDB and ensure models are registered
+    await connectDB();
+    registerModels();
     
     // Find user in database
-    const user = await db.collection('users').findOne({ 
-      _id: new ObjectId(decoded.id)
-    });
+    const user = await User.findById(decoded.id);
     
     if (!user) {
-      await client.close();
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
     
-    // Mock data for now - would be replaced with actual data from DB
+    // Fetch user's bookings
+    const allBookings = await Booking.find({ 
+      travelerId: user._id 
+    })
+    .sort({ createdAt: -1 })
+    .populate('guideId', 'name avatar')
+    .populate('tourId', 'title images location');
+    
+    const now = new Date();
+    
+    // Process bookings into upcoming and past
+    const upcomingBookings = [];
+    const pastBookings = [];
+    
+    try {
+      for (const booking of allBookings) {
+        const bookingDate = new Date(booking.date);
+        const isUpcoming = bookingDate >= now || 
+                           (booking.status !== 'cancelled' && booking.status !== 'completed');
+        
+        const processedBooking = {
+          id: booking._id.toString(),
+          tourName: booking.tourName || 'Unnamed Tour',
+          guideName: booking.guideName || 'Unknown Guide',
+          location: booking.tourId?.location || 'Unknown location',
+          date: booking.date,
+          time: booking.time || '12:00 PM', // Default if no time specified
+          status: booking.status ? booking.status.charAt(0).toUpperCase() + booking.status.slice(1) : 'Pending',
+          image: booking.tourId?.images?.[0] || 'https://images.unsplash.com/photo-1528493859953-39d70f2a62f2',
+          hasReviewed: booking.hasReviewed || false
+        };
+        
+        if (isUpcoming) {
+          upcomingBookings.push(processedBooking);
+        } else {
+          pastBookings.push(processedBooking);
+        }
+      }
+    } catch (err) {
+      console.error('Error processing bookings:', err);
+      // Continue with empty bookings arrays
+    }
+    
+    // Fetch saved guides
+    const savedGuides = [];
+    if (user.savedGuides && user.savedGuides.length > 0) {
+      try {
+        const guidesData = await User.find({
+          _id: { $in: user.savedGuides },
+          role: 'guide'
+        });
+        
+        for (const guide of guidesData) {
+          savedGuides.push({
+            id: guide._id.toString(),
+            name: guide.name,
+            location: guide.location || 'Location not specified',
+            rating: guide.rating || 4.5,
+            specialty: guide.specialty || 'Local Guide',
+            image: guide.avatar || 'https://images.unsplash.com/photo-1566753323558-f4e0952af115'
+          });
+        }
+      } catch (err) {
+        console.error('Error fetching saved guides:', err);
+        // Continue with empty savedGuides array
+      }
+    }
+    
+    // Construct user data response
     const userData = {
       name: user.name,
       email: user.email,
@@ -51,81 +121,10 @@ export async function GET() {
         languages: user.preferences?.languages || []
       },
       profileCompleted: user.profileCompleted || false,
-      upcomingBookings: [
-        {
-          id: '1',
-          tourName: 'Historical Delhi Walk',
-          guideName: 'Amit Sharma',
-          location: 'Delhi, India',
-          date: '2023-07-15',
-          time: '09:00 AM',
-          status: 'Confirmed',
-          image: 'https://images.unsplash.com/photo-1587474260584-136574528ed5'
-        },
-        {
-          id: '2',
-          tourName: 'Agra Food Tour',
-          guideName: 'Priya Patel',
-          location: 'Agra, India',
-          date: '2023-08-03',
-          time: '06:00 PM',
-          status: 'Pending',
-          image: 'https://images.unsplash.com/photo-1528493859953-39d70f2a62f2'
-        }
-      ],
-      pastBookings: [
-        {
-          id: '3',
-          tourName: 'Mumbai Street Art Tour',
-          guideName: 'Rohan Mehta',
-          location: 'Mumbai, India',
-          date: '2023-04-20',
-          time: '11:00 AM',
-          status: 'Completed',
-          image: 'https://images.unsplash.com/photo-1595658658481-d53d3f999875',
-          hasReviewed: true
-        },
-        {
-          id: '4',
-          tourName: 'Jaipur Heritage Walk',
-          guideName: 'Vikram Singh',
-          location: 'Jaipur, India',
-          date: '2023-03-12',
-          time: '08:30 AM',
-          status: 'Completed',
-          image: 'https://images.unsplash.com/photo-1477586957327-847a0f3f4fe3',
-          hasReviewed: false
-        }
-      ],
-      savedGuides: [
-        {
-          id: '101',
-          name: 'Deepak Kumar',
-          location: 'Varanasi, India',
-          rating: 4.9,
-          specialty: 'Cultural & Religious Tours',
-          image: 'https://images.unsplash.com/photo-1566753323558-f4e0952af115'
-        },
-        {
-          id: '102',
-          name: 'Ananya Desai',
-          location: 'Goa, India',
-          rating: 4.7,
-          specialty: 'Beach & Water Activities',
-          image: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2'
-        },
-        {
-          id: '103',
-          name: 'Rajiv Kapoor',
-          location: 'Darjeeling, India',
-          rating: 4.8,
-          specialty: 'Mountain Treks & Tea Tours',
-          image: 'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d'
-        }
-      ]
+      upcomingBookings,
+      pastBookings,
+      savedGuides
     };
-    
-    await client.close();
     
     return NextResponse.json({
       success: true,
