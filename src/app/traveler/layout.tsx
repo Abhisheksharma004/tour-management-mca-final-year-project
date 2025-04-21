@@ -48,6 +48,15 @@ export default function TravelerLayout({
         }
         
         const tokenValue = token.split('=')[1];
+        
+        // Validate token format before decoding
+        if (!tokenValue || typeof tokenValue !== 'string' || tokenValue.split('.').length !== 3) {
+          console.warn('Invalid token format in traveler layout');
+          setIsAuthenticated(false);
+          setIsLoading(false);
+          return;
+        }
+        
         const decoded = jwtDecode<DecodedToken>(tokenValue);
         
         if (decoded.exp * 1000 < Date.now()) {

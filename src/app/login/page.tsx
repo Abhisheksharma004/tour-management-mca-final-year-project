@@ -26,6 +26,60 @@ export default function LoginPage() {
     setDebug('');
 
     try {
+      // Check for admin credentials
+      if (formData.email === 'admin@admin.com' && formData.password === 'Admin@2022') {
+        setSuccess('Admin login successful! Redirecting to admin dashboard...');
+        
+        // Create admin user object
+        const adminUser = {
+          _id: 'admin',
+          name: 'Administrator',
+          email: 'admin@admin.com',
+          role: 'admin'
+        };
+
+        // Create a proper JWT token for admin - matching the structure expected by jwtDecode
+        const adminPayload = {
+          id: 'admin',
+          name: 'Administrator',
+          email: 'admin@admin.com',
+          role: 'admin',
+          exp: Math.floor(Date.now() / 1000) + (30 * 24 * 60 * 60) // 30 days expiration
+        };
+        
+        // Create a base64 encoded JWT-like token (header.payload.signature)
+        const header = btoa(JSON.stringify({ alg: 'HS256', typ: 'JWT' }));
+        const payload = btoa(JSON.stringify(adminPayload));
+        const signature = btoa('adminsignature'); // This is a placeholder, not a real signature
+        const adminToken = `${header}.${payload}.${signature}`;
+
+        // Store token with admin role
+        setCookie('token', adminToken, {
+          maxAge: 30 * 24 * 60 * 60, // 30 days
+          path: '/',
+          secure: process.env.NODE_ENV === 'production',
+          sameSite: 'lax'
+        });
+
+        // Store admin information in localStorage
+        localStorage.setItem('user', JSON.stringify(adminUser));
+        localStorage.setItem('isLoggedIn', 'true');
+        localStorage.setItem('userRole', 'admin');
+        localStorage.setItem('userName', 'Administrator');
+
+        // Broadcast login event
+        if (typeof window !== 'undefined') {
+          window.dispatchEvent(new Event('userLoggedIn'));
+          window.dispatchEvent(new Event('storage'));
+        }
+
+        // Redirect to admin dashboard
+        setTimeout(() => {
+          router.push('/admin');
+        }, 500);
+        return;
+      }
+
       setDebug('Sending login request to direct-login endpoint...');
 
       const response = await fetch('/api/auth/direct-login', {

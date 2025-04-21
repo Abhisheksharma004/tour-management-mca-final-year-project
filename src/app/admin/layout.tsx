@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, ReactNode } from 'react';
+import { useState, ReactNode, useEffect } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { usePathname } from 'next/navigation';
@@ -18,7 +18,23 @@ interface AdminLayoutProps {
 export default function AdminLayout({ children }: AdminLayoutProps) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [profileModalOpen, setProfileModalOpen] = useState(false);
+  const [adminName, setAdminName] = useState('Admin');
   const pathname = usePathname();
+
+  useEffect(() => {
+    // Get admin name from localStorage
+    const userName = localStorage.getItem('userName');
+    if (userName) {
+      setAdminName(userName);
+    }
+    
+    // Check for admin role
+    const userRole = localStorage.getItem('userRole');
+    if (userRole !== 'admin') {
+      // Redirect if not admin - this is a fallback protection
+      window.location.href = '/login';
+    }
+  }, []);
 
   const navLinks = [
     { name: 'Dashboard', href: '/admin', icon: FaHome },
@@ -35,6 +51,20 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
   const toggleSidebar = () => setSidebarOpen(!sidebarOpen);
   const openProfileModal = () => setProfileModalOpen(true);
   const closeProfileModal = () => setProfileModalOpen(false);
+
+  const handleSignOut = () => {
+    // Clear all localStorage items
+    localStorage.removeItem('user');
+    localStorage.removeItem('isLoggedIn');
+    localStorage.removeItem('userRole');
+    localStorage.removeItem('userName');
+    
+    // Clear cookies - this will be fully handled by the server
+    document.cookie = 'token=; Path=/; Expires=Thu, 01 Jan 1970 00:00:01 GMT;';
+    
+    // Redirect to login page
+    window.location.href = '/login';
+  };
 
   return (
     <div className="flex h-screen bg-gray-900">
@@ -71,7 +101,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
               />
             </div>
             <div>
-              <p className="font-medium text-white">Admin User</p>
+              <p className="font-medium text-white">{adminName}</p>
               <p className="text-sm text-gray-400">Super Admin</p>
             </div>
           </div>
@@ -97,13 +127,13 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
               <FaHome className="mr-3 h-5 w-5" />
               <span>View Website</span>
             </Link>
-            <Link
-              href="/admin/logout"
-              className="flex items-center px-4 py-3 text-sm text-gray-300 rounded-md hover:bg-gray-700 hover:text-white transition-colors"
+            <button
+              onClick={handleSignOut}
+              className="flex items-center px-4 py-3 text-sm text-gray-300 rounded-md hover:bg-gray-700 hover:text-white transition-colors w-full"
             >
               <FaSignOutAlt className="mr-3 h-5 w-5" />
               <span>Sign Out</span>
-            </Link>
+            </button>
           </div>
         </div>
       </aside>
@@ -135,7 +165,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
                 <div className="flex items-center">
                   <FaUserCircle className="w-5 h-5 mr-2" />
                   <div className="text-sm">
-                    Welcome, <span className="font-semibold text-white group-hover:text-orange-400 transition-colors">Admin</span>
+                    Welcome, <span className="font-semibold text-white group-hover:text-orange-400 transition-colors">{adminName}</span>
                   </div>
                 </div>
               </button>

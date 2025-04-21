@@ -76,18 +76,22 @@ export default function Home() {
         const token = getCookie('token');
         
         if (token) {
-          // If token exists, try to decode it
-          try {
-            const decoded = jwtDecode<DecodedToken>(token as string);
-            const currentTime = Math.floor(Date.now() / 1000);
-            
-            // If token is not expired, redirect to dashboard
-            if (decoded && decoded.exp > currentTime) {
-              router.push('/dashboard');
-              return;
+          // If token exists, validate format and try to decode it
+          if (typeof token === 'string' && token.split('.').length === 3) {
+            try {
+              const decoded = jwtDecode<DecodedToken>(token);
+              const currentTime = Math.floor(Date.now() / 1000);
+              
+              // If token is not expired, redirect to dashboard
+              if (decoded && decoded.exp > currentTime) {
+                router.push('/dashboard');
+                return;
+              }
+            } catch (error) {
+              console.error('Error decoding token:', error);
             }
-          } catch (error) {
-            console.error('Error decoding token:', error);
+          } else {
+            console.warn('Invalid token format in home page');
           }
         }
         

@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { MongoClient } from 'mongodb';
+import { MongoClient, ObjectId } from 'mongodb';
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
 import { z } from 'zod';
@@ -43,6 +43,82 @@ export async function POST(request: Request) {
     
     const db = client.db(dbName);
     
+    // Special handling for admin login
+    if (email === 'admin@admin.com') {
+      // Check if admin exists, if not create admin user
+      let adminUser = await db.collection('users').findOne({ email: 'admin@admin.com' });
+      
+      if (!adminUser) {
+        // Create admin user if it doesn't exist
+        const hashedPassword = await bcrypt.hash('Admin@2022', 10);
+        const newAdmin = {
+          name: 'Administrator',
+          email: 'admin@admin.com',
+          password: hashedPassword,
+          role: 'admin',
+          createdAt: new Date()
+        };
+        
+        const result = await db.collection('users').insertOne(newAdmin);
+        adminUser = {
+          _id: result.insertedId,
+          ...newAdmin
+        };
+        console.log('Created new admin user');
+      } else if (adminUser.role !== 'admin') {
+        // Ensure the user has admin role
+        await db.collection('users').updateOne(
+          { _id: adminUser._id },
+          { $set: { role: 'admin' } }
+        );
+        adminUser.role = 'admin';
+        console.log('Updated user to admin role');
+      }
+      
+      // Verify the admin password
+      const isPasswordValid = await bcrypt.compare(password, adminUser.password);
+      if (!isPasswordValid) {
+        console.log('Invalid admin password');
+        return NextResponse.json(
+          { error: 'Invalid credentials' },
+          { status: 401 }
+        );
+      }
+      
+      // Generate JWT token for admin with fixed expiration for consistency
+      const payload = { 
+        id: adminUser._id.toString(),
+        name: adminUser.name,
+        email: adminUser.email,
+        role: 'admin',
+        exp: Math.floor(Date.now() / 1000) + (30 * 24 * 60 * 60) // 30 days expiration
+      };
+      
+      const token = jwt.sign(
+        payload,
+        process.env.JWT_SECRET || 'fallback_secret',
+        { expiresIn: '30d' }
+      );
+      
+      // Prepare admin response
+      const userResponse = {
+        _id: adminUser._id.toString(),
+        name: adminUser.name,
+        email: adminUser.email,
+        role: 'admin'
+      };
+      
+      console.log('Admin login successful');
+      
+      return NextResponse.json({
+        success: true,
+        user: userResponse,
+        token,
+        message: 'Admin login successful'
+      });
+    }
+    
+    // Regular user login process
     // Find user by email
     const user = await db.collection('users').findOne({ email });
     if (!user) {

@@ -29,16 +29,23 @@ export default function ClientHeader() {
     
     if (token) {
       try {
-        // Check token expiration
-        const decoded = jwtDecode<DecodedToken>(token as string);
-        if (decoded.exp * 1000 > Date.now()) {
-          setIsLoggedIn(true);
-          setUserRole(decoded.role);
-          setUserName(decoded.name);
-          return;
+        // Validate token format before decoding
+        if (typeof token === 'string' && token.split('.').length === 3) {
+          // Check token expiration
+          const decoded = jwtDecode<DecodedToken>(token);
+          if (decoded.exp * 1000 > Date.now()) {
+            setIsLoggedIn(true);
+            setUserRole(decoded.role);
+            setUserName(decoded.name);
+            return;
+          }
+        } else {
+          console.warn('Invalid token format, falling back to localStorage');
         }
       } catch (error) {
         console.error('Error decoding token:', error);
+        // Clear invalid token
+        deleteCookie('token');
       }
     }
     

@@ -32,8 +32,15 @@ export default function ProtectedRoute({ children, allowedRoles = ['traveler'] }
       }
 
       try {
+        // Validate token format before decoding
+        if (typeof token !== 'string' || token.split('.').length !== 3) {
+          console.warn('Invalid token format, redirecting to login');
+          router.push('/login');
+          return;
+        }
+        
         // Check token expiration
-        const decoded = jwtDecode<DecodedToken>(token as string);
+        const decoded = jwtDecode<DecodedToken>(token);
         if (decoded.exp * 1000 < Date.now()) {
           router.push('/login');
           return;
