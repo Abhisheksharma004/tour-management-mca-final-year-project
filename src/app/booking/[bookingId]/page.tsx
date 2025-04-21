@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import Link from 'next/link';
+import React from 'react';
 import { 
   FaCalendarAlt, 
   FaClock, 
@@ -54,7 +55,10 @@ interface BookingDetails {
   createdAt: string;
 }
 
-export default function BookingDetailsPage({ params }: { params: { bookingId: string } }) {
+export default function BookingDetailsPage({ params }: { params: Promise<{ bookingId: string }> }) {
+  const resolvedParams = React.use(params);
+  const bookingId = resolvedParams.bookingId;
+  
   const [booking, setBooking] = useState<BookingDetails | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -66,7 +70,7 @@ export default function BookingDetailsPage({ params }: { params: { bookingId: st
     const fetchBookingDetails = async () => {
       try {
         setLoading(true);
-        const response = await fetch(`/api/bookings/${params.bookingId}`);
+        const response = await fetch(`/api/bookings/${bookingId}`);
         
         if (!response.ok) {
           const errorData = await response.json();
@@ -89,7 +93,7 @@ export default function BookingDetailsPage({ params }: { params: { bookingId: st
     };
     
     fetchBookingDetails();
-  }, [params.bookingId]);
+  }, [bookingId]);
 
   const cancelBooking = async () => {
     try {
@@ -100,7 +104,7 @@ export default function BookingDetailsPage({ params }: { params: { bookingId: st
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ bookingId: params.bookingId }),
+        body: JSON.stringify({ bookingId }),
       });
       
       if (!response.ok) {
@@ -109,7 +113,7 @@ export default function BookingDetailsPage({ params }: { params: { bookingId: st
       }
       
       // Refresh booking data
-      const updatedResponse = await fetch(`/api/bookings/${params.bookingId}`);
+      const updatedResponse = await fetch(`/api/bookings/${bookingId}`);
       const updatedData = await updatedResponse.json();
       
       if (updatedData.success) {
@@ -230,7 +234,7 @@ export default function BookingDetailsPage({ params }: { params: { bookingId: st
               <div className="relative h-80 w-full">
                 <Image 
                   src={booking.tour.images[0] || 'https://images.unsplash.com/photo-1528493859953-39d70f2a62f2'} 
-                  alt={booking.tour.title} 
+                  alt={`${booking.tour.title} tour image - ${booking.tour.location}`} 
                   fill
                   sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
                   style={{ objectFit: "cover" }}
@@ -311,7 +315,7 @@ export default function BookingDetailsPage({ params }: { params: { bookingId: st
                 <div className="relative w-16 h-16 rounded-full overflow-hidden">
                   <Image 
                     src={booking.guide.avatar || '/images/default-avatar.png'} 
-                    alt={booking.guide.name}
+                    alt={`Profile photo of guide ${booking.guide.name}`}
                     fill
                     sizes="64px"
                     style={{ objectFit: "cover" }}
