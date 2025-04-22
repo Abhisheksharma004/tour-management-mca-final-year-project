@@ -1,109 +1,93 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { FaSearch, FaFilter, FaStar, FaEdit, FaTrash, FaEye, FaPlus, FaEllipsisH, FaCheck, FaTimes } from 'react-icons/fa';
 import DateDisplay from '@/components/DateDisplay';
 import GuideProfileModal from '@/components/admin/GuideProfileModal';
 
-// Mock data for guides
-const guidesData = [
-  {
-    id: 1,
-    name: 'Raj Mehta',
-    location: 'Mumbai, India',
-    profileImage: 'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d',
-    languages: ['English', 'Hindi', 'Marathi'],
-    rating: 4.8,
-    reviews: 127,
-    status: 'Active',
-    specialties: ['Historical Tours', 'Food & Culture', 'Photography'],
-    lastUpdated: '2024-04-12'
-  },
-  {
-    id: 2,
-    name: 'Priya Sharma',
-    location: 'Delhi, India',
-    profileImage: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb',
-    languages: ['English', 'Hindi', 'Punjabi'],
-    rating: 4.9,
-    reviews: 215,
-    status: 'Active',
-    specialties: ['Heritage Tours', 'Street Food', 'Shopping'],
-    lastUpdated: '2024-04-15'
-  },
-  {
-    id: 3,
-    name: 'Arjun Patel',
-    location: 'Jaipur, India',
-    profileImage: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e',
-    languages: ['English', 'Hindi', 'Rajasthani'],
-    rating: 4.7,
-    reviews: 98,
-    status: 'Active',
-    specialties: ['Palace Tours', 'Cultural Experiences', 'Desert Safaris'],
-    lastUpdated: '2024-04-08'
-  },
-  {
-    id: 4,
-    name: 'Meera Iyer',
-    location: 'Varanasi, India',
-    profileImage: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330',
-    languages: ['English', 'Hindi', 'Sanskrit'],
-    rating: 4.6,
-    reviews: 94,
-    status: 'On Leave',
-    specialties: ['Spiritual Tours', 'Cultural Heritage', 'Photography'],
-    lastUpdated: '2024-04-02'
-  },
-  {
-    id: 5,
-    name: 'Vikram Nair',
-    location: 'Kerala, India',
-    profileImage: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d',
-    languages: ['English', 'Malayalam', 'Tamil'],
-    rating: 4.9,
-    reviews: 156,
-    status: 'Active',
-    specialties: ['Backwaters', 'Nature', 'Ayurveda'],
-    lastUpdated: '2024-04-14'
-  },
-  {
-    id: 6,
-    name: 'Anita Desai',
-    location: 'Kolkata, India',
-    profileImage: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2',
-    languages: ['English', 'Bengali', 'Hindi'],
-    rating: 4.7,
-    reviews: 88,
-    status: 'Inactive',
-    specialties: ['Cultural Heritage', 'Food Tours', 'Literary Tours'],
-    lastUpdated: '2024-03-25'
-  },
-];
+// Guide interface
+interface Guide {
+  id: string;
+  name: string;
+  location: string;
+  profileImage: string;
+  languages: string[];
+  rating: number;
+  totalRatings: number;
+  status: string;
+  specialties: string[];
+  updatedAt: string;
+  createdAt: string;
+  email: string;
+  phone: string;
+  totalBookings: number;
+  totalRevenue: number;
+}
+
+interface Pagination {
+  page: number;
+  limit: number;
+  total: number;
+  totalPages: number;
+  hasMore: boolean;
+}
 
 export default function GuidesManagement() {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('All');
-  const [selectedGuide, setSelectedGuide] = useState<any>(null);
+  const [selectedGuide, setSelectedGuide] = useState<Guide | null>(null);
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
-  
-  // Filter guides based on search term and status
-  const filteredGuides = guidesData.filter(guide => {
-    const matchesSearch = 
-      guide.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
-      guide.location.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      guide.specialties.some(specialty => 
-        specialty.toLowerCase().includes(searchTerm.toLowerCase())
-      );
-    
-    const matchesStatus = statusFilter === 'All' || guide.status === statusFilter;
-    
-    return matchesSearch && matchesStatus;
+  const [guides, setGuides] = useState<Guide[]>([]);
+  const [pagination, setPagination] = useState<Pagination>({
+    page: 1,
+    limit: 10,
+    total: 0,
+    totalPages: 0,
+    hasMore: false
   });
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  
+  // Fetch guides from API
+  useEffect(() => {
+    const fetchGuides = async () => {
+      setLoading(true);
+      try {
+        const queryParams = new URLSearchParams({
+          page: pagination.page.toString(),
+          limit: pagination.limit.toString(),
+          search: searchTerm,
+          status: statusFilter
+        });
+        
+        const response = await fetch(`/api/admin/guides?${queryParams}`);
+        
+        if (!response.ok) {
+          throw new Error('Failed to fetch guides');
+        }
+        
+        const data = await response.json();
+        
+        if (data.success) {
+          setGuides(data.guides);
+          setPagination(data.pagination);
+        } else {
+          throw new Error(data.error || 'Failed to fetch guides');
+        }
+      } catch (err: any) {
+        console.error('Error fetching guides:', err);
+        setError(err.message);
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    fetchGuides();
+  }, [searchTerm, statusFilter, pagination.page, pagination.limit]);
 
-  const openGuideProfile = (guide: any) => {
+  const openGuideProfile = (guide: Guide) => {
     setSelectedGuide(guide);
     setIsProfileModalOpen(true);
   };
@@ -111,6 +95,56 @@ export default function GuidesManagement() {
   const closeGuideProfile = () => {
     setIsProfileModalOpen(false);
   };
+
+  const handlePageChange = (newPage: number) => {
+    if (newPage > 0 && newPage <= pagination.totalPages) {
+      setPagination({ ...pagination, page: newPage });
+    }
+  };
+
+  // Format currency
+  const formatCurrency = (amount: number) => {
+    return new Intl.NumberFormat('en-IN', {
+      style: 'currency',
+      currency: 'INR',
+      maximumFractionDigits: 0,
+    }).format(amount);
+  };
+
+  // Loading state
+  if (loading && guides.length === 0) {
+    return (
+      <div className="flex items-center justify-center h-screen bg-gray-900">
+        <div className="text-center">
+          <div className="w-16 h-16 border-t-4 border-b-4 border-orange-500 rounded-full animate-spin mx-auto"></div>
+          <p className="mt-4 text-xl text-gray-200">Loading guides data...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Error state
+  if (error && guides.length === 0) {
+    return (
+      <div className="flex items-center justify-center h-screen bg-gray-900">
+        <div className="text-center p-8 bg-gray-800 rounded-lg shadow-lg max-w-md">
+          <div className="text-red-500 text-5xl mb-4">
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-16 w-16 mx-auto" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+            </svg>
+          </div>
+          <h1 className="text-2xl font-bold text-white mb-2">Error Loading Guides</h1>
+          <p className="text-gray-300 mb-4">{error}</p>
+          <button 
+            onClick={() => window.location.reload()}
+            className="px-4 py-2 bg-orange-600 text-white rounded hover:bg-orange-500 transition-colors"
+          >
+            Try Again
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div>
@@ -156,6 +190,7 @@ export default function GuidesManagement() {
                 <option value="Active">Active</option>
                 <option value="Inactive">Inactive</option>
                 <option value="On Leave">On Leave</option>
+                <option value="Pending">Pending</option>
               </select>
             </div>
             <button className="px-4 py-2 bg-gray-700 text-gray-200 rounded-md hover:bg-gray-600 border border-gray-600 transition">
@@ -165,6 +200,13 @@ export default function GuidesManagement() {
         </div>
         
         <div className="overflow-x-auto">
+          {loading && guides.length > 0 && (
+            <div className="p-4 text-center text-gray-400">
+              <div className="inline-block h-6 w-6 border-t-2 border-b-2 border-orange-500 rounded-full animate-spin mr-2"></div>
+              Updating guides...
+            </div>
+          )}
+          
           <table className="w-full">
             <thead className="bg-gray-700/50 text-left">
               <tr>
@@ -179,121 +221,167 @@ export default function GuidesManagement() {
               </tr>
             </thead>
             <tbody>
-              {filteredGuides.map((guide) => (
-                <tr key={guide.id} className="border-t border-gray-700 hover:bg-gray-700/20 transition-colors">
-                  <td className="p-4">
-                    <div className="flex items-center">
-                      <div className="relative w-10 h-10 rounded-full overflow-hidden mr-3 border border-gray-600">
-                        <Image 
-                          src={guide.profileImage} 
-                          alt={guide.name} 
-                          fill 
-                          sizes="40px"
-                          style={{ objectFit: "cover" }}
-                          unoptimized
-                        />
-                      </div>
-                      <span className="font-medium text-gray-200">{guide.name}</span>
-                    </div>
-                  </td>
-                  <td className="p-4 text-gray-300">{guide.location}</td>
-                  <td className="p-4">
-                    <div className="flex flex-wrap gap-1">
-                      {guide.languages.map((language, index) => (
-                        <span 
-                          key={index} 
-                          className="px-2 py-1 bg-gray-700 text-gray-300 text-xs rounded-full"
-                        >
-                          {language}
-                        </span>
-                      ))}
-                    </div>
-                  </td>
-                  <td className="p-4">
-                    <div className="flex items-center">
-                      <span className="text-gray-200 font-medium mr-1">{guide.rating}</span>
-                      <FaStar className="text-yellow-400" />
-                      <span className="text-gray-400 text-sm ml-1">({guide.reviews})</span>
-                    </div>
-                  </td>
-                  <td className="p-4">
-                    <div className="flex flex-wrap gap-1">
-                      {guide.specialties.map((specialty, index) => (
-                        <span 
-                          key={index} 
-                          className="px-2 py-1 bg-gray-700/50 text-gray-300 text-xs rounded-full"
-                        >
-                          {specialty}
-                        </span>
-                      ))}
-                    </div>
-                  </td>
-                  <td className="p-4">
-                    <span className={`px-2 py-1 rounded-full text-xs ${
-                      guide.status === 'Active' ? 'bg-green-900/60 text-green-300 border border-green-700' : 
-                      guide.status === 'Inactive' ? 'bg-red-900/60 text-red-300 border border-red-700' : 
-                      'bg-yellow-900/60 text-yellow-300 border border-yellow-700'
-                    }`}>
-                      {guide.status}
-                    </span>
-                  </td>
-                  <td className="p-4 text-gray-300">
-                    <DateDisplay date={guide.lastUpdated} className="text-sm text-gray-400" />
-                  </td>
-                  <td className="p-4">
-                    <div className="flex space-x-2">
-                      <button 
-                        className="p-1 text-blue-400 hover:text-blue-300 transition-colors"
-                        title="View Guide"
-                        onClick={() => openGuideProfile(guide)}
-                      >
-                        <FaEye />
-                      </button>
-                      <button 
-                        className="p-1 text-orange-400 hover:text-orange-300 transition-colors"
-                        title="Edit Guide"
-                      >
-                        <FaEdit />
-                      </button>
-                      <button 
-                        className="p-1 text-red-400 hover:text-red-300 transition-colors"
-                        title="Delete Guide"
-                      >
-                        <FaTrash />
-                      </button>
-                    </div>
+              {guides.length === 0 ? (
+                <tr>
+                  <td colSpan={8} className="p-4 text-center text-gray-400">
+                    No guides found matching your criteria
                   </td>
                 </tr>
-              ))}
+              ) : (
+                guides.map((guide) => (
+                  <tr key={guide.id} className="border-t border-gray-700 hover:bg-gray-700/20 transition-colors">
+                    <td className="p-4">
+                      <div className="flex items-center">
+                        <div className="relative w-10 h-10 rounded-full overflow-hidden mr-3 border border-gray-600">
+                          <Image 
+                            src={guide.profileImage} 
+                            alt={guide.name} 
+                            fill 
+                            sizes="40px"
+                            style={{ objectFit: "cover" }}
+                            unoptimized
+                          />
+                        </div>
+                        <span className="font-medium text-gray-200">{guide.name}</span>
+                      </div>
+                    </td>
+                    <td className="p-4 text-gray-300">{guide.location}</td>
+                    <td className="p-4">
+                      <div className="flex flex-wrap gap-1">
+                        {guide.languages.map((language, index) => (
+                          <span 
+                            key={index} 
+                            className="px-2 py-1 bg-gray-700 text-gray-300 text-xs rounded-full"
+                          >
+                            {language}
+                          </span>
+                        ))}
+                      </div>
+                    </td>
+                    <td className="p-4">
+                      <div className="flex items-center">
+                        <span className="text-gray-200 font-medium mr-1">{guide.rating.toFixed(1)}</span>
+                        <FaStar className="text-yellow-400" />
+                        <span className="text-gray-400 text-sm ml-1">({guide.totalRatings})</span>
+                      </div>
+                    </td>
+                    <td className="p-4">
+                      <div className="flex flex-wrap gap-1">
+                        {guide.specialties.map((specialty, index) => (
+                          <span 
+                            key={index} 
+                            className="px-2 py-1 bg-gray-700/50 text-gray-300 text-xs rounded-full"
+                          >
+                            {specialty}
+                          </span>
+                        ))}
+                      </div>
+                    </td>
+                    <td className="p-4">
+                      <span className={`px-2 py-1 rounded-full text-xs ${
+                        guide.status === 'Active' ? 'bg-green-900/60 text-green-300 border border-green-700' : 
+                        guide.status === 'Inactive' ? 'bg-red-900/60 text-red-300 border border-red-700' : 
+                        guide.status === 'Pending' ? 'bg-blue-900/60 text-blue-300 border border-blue-700' :
+                        'bg-yellow-900/60 text-yellow-300 border border-yellow-700'
+                      }`}>
+                        {guide.status}
+                      </span>
+                    </td>
+                    <td className="p-4 text-gray-300">
+                      <DateDisplay date={guide.updatedAt} className="text-sm text-gray-400" />
+                    </td>
+                    <td className="p-4">
+                      <div className="flex space-x-2">
+                        <button 
+                          className="p-1 text-blue-400 hover:text-blue-300 transition-colors"
+                          title="View Guide"
+                          onClick={() => openGuideProfile(guide)}
+                        >
+                          <FaEye />
+                        </button>
+                        <Link 
+                          href={`/admin/guides/edit/${guide.id}`}
+                          className="p-1 text-yellow-400 hover:text-yellow-300 transition-colors"
+                          title="Edit Guide"
+                        >
+                          <FaEdit />
+                        </Link>
+                        <button 
+                          className="p-1 text-red-400 hover:text-red-300 transition-colors"
+                          title="Delete Guide"
+                        >
+                          <FaTrash />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))
+              )}
             </tbody>
           </table>
         </div>
         
-        {filteredGuides.length === 0 && (
-          <div className="p-8 text-center">
-            <p className="text-gray-400">No guides found matching your search criteria.</p>
+        {/* Pagination */}
+        {pagination.totalPages > 1 && (
+          <div className="p-4 border-t border-gray-700 flex justify-between items-center">
+            <div className="text-gray-400 text-sm">
+              Showing {Math.min((pagination.page - 1) * pagination.limit + 1, pagination.total)} to {Math.min(pagination.page * pagination.limit, pagination.total)} of {pagination.total} guides
+            </div>
+            <div className="flex space-x-2">
+              <button
+                className={`px-3 py-1 rounded ${pagination.page === 1 ? 'bg-gray-700 text-gray-500 cursor-not-allowed' : 'bg-gray-700 text-gray-200 hover:bg-gray-600'}`}
+                onClick={() => handlePageChange(pagination.page - 1)}
+                disabled={pagination.page === 1}
+              >
+                Previous
+              </button>
+              
+              {Array.from({ length: Math.min(5, pagination.totalPages) }, (_, i) => {
+                let pageNum;
+                if (pagination.totalPages <= 5) {
+                  pageNum = i + 1;
+                } else if (pagination.page <= 3) {
+                  pageNum = i + 1;
+                } else if (pagination.page >= pagination.totalPages - 2) {
+                  pageNum = pagination.totalPages - 4 + i;
+                } else {
+                  pageNum = pagination.page - 2 + i;
+                }
+                
+                return (
+                  <button
+                    key={i}
+                    className={`px-3 py-1 rounded ${
+                      pageNum === pagination.page
+                        ? 'bg-orange-600 text-white'
+                        : 'bg-gray-700 text-gray-200 hover:bg-gray-600'
+                    }`}
+                    onClick={() => handlePageChange(pageNum)}
+                  >
+                    {pageNum}
+                  </button>
+                );
+              })}
+              
+              <button
+                className={`px-3 py-1 rounded ${pagination.page === pagination.totalPages ? 'bg-gray-700 text-gray-500 cursor-not-allowed' : 'bg-gray-700 text-gray-200 hover:bg-gray-600'}`}
+                onClick={() => handlePageChange(pagination.page + 1)}
+                disabled={pagination.page === pagination.totalPages}
+              >
+                Next
+              </button>
+            </div>
           </div>
         )}
-        
-        <div className="p-4 border-t border-gray-700 flex justify-between items-center">
-          <p className="text-sm text-gray-400">Showing {filteredGuides.length} of {guidesData.length} guides</p>
-          <div className="flex space-x-2">
-            <button className="px-3 py-1 bg-gray-700 text-gray-300 rounded hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed">
-              Previous
-            </button>
-            <button className="px-3 py-1 bg-gray-700 text-gray-300 rounded hover:bg-gray-600">
-              Next
-            </button>
-          </div>
-        </div>
       </div>
       
       {/* Guide Profile Modal */}
-      <GuideProfileModal 
-        isOpen={isProfileModalOpen} 
-        onClose={closeGuideProfile} 
-        guide={selectedGuide}
-      />
+      {isProfileModalOpen && selectedGuide && (
+        <GuideProfileModal
+          guide={selectedGuide}
+          onClose={closeGuideProfile}
+        />
+      )}
     </div>
   );
 } 
