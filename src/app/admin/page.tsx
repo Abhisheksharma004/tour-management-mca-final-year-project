@@ -50,22 +50,32 @@ interface Booking {
   travelerId: {
     _id: string;
     name: string;
-    profileImage?: string;
+    email: string;
+    avatar: string;
+    phone: string;
   };
+  travelerName: string;
+  travelerEmail: string;
   guideId: {
     _id: string;
     name: string;
-    profileImage?: string;
+    email: string;
+    avatar: string;
+    phone?: string;
   };
-  destinationId: {
+  guideName: string;
+  tourId: {
     _id: string;
-    name: string;
+    price: number;
   };
-  startDate: string;
-  endDate: string;
+  tourName: string;
+  date: string;
+  participants: number;
+  totalPrice: number;
   status: string;
-  amount: number;
   createdAt: string;
+  hasReviewed: boolean;
+  time: string;
 }
 
 // Destination Interface
@@ -455,28 +465,28 @@ export default function AdminDashboard() {
                   <div className="flex items-center mb-2">
                     <div className="w-10 h-10 rounded-full overflow-hidden bg-gray-600 mr-3">
                       <img 
-                        src={booking.travelerId.profileImage || "/placeholder-avatar.png"} 
+                        src={booking.travelerId.avatar} 
                         alt={booking.travelerId.name}
                         className="w-full h-full object-cover"
                       />
                     </div>
                     <div>
-                      <h4 className="font-medium">{booking.travelerId.name}</h4>
-                      <p className="text-sm text-gray-400">with {booking.guideId.name}</p>
+                      <h4 className="font-medium">{booking.travelerName}</h4>
+                      <p className="text-sm text-gray-400">with {booking.guideName}</p>
                     </div>
                   </div>
                   <div className="flex justify-between text-sm">
                     <div>
                       <p className="text-gray-400">Destination</p>
-                      <p>{booking.destinationId.name}</p>
+                      <p>{booking.tourName}</p>
                     </div>
                     <div>
                       <p className="text-gray-400">Date</p>
-                      <p>{formatDate(booking.startDate)}</p>
+                      <p>{formatDate(booking.date)}</p>
                     </div>
                     <div>
                       <p className="text-gray-400">Amount</p>
-                      <p className="font-medium text-teal-400">{formatCurrency(booking.amount)}</p>
+                      <p className="font-medium text-teal-400">{formatCurrency(booking.totalPrice)}</p>
                     </div>
                   </div>
                   <div className="mt-2">
@@ -529,4 +539,4 @@ export default function AdminDashboard() {
       </div>
     </div>
   );
-} 
+}
