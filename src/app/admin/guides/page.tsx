@@ -26,7 +26,7 @@ interface Guide {
   totalRevenue: number;
 }
 
-interface Pagination {
+export interface Pagination {
   page: number;
   limit: number;
   total: number;
