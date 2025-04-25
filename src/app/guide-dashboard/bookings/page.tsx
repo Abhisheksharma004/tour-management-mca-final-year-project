@@ -21,7 +21,8 @@ import {
   FaSpinner,
   FaInfoCircle,
   FaTimesCircle,
-  FaFlag
+  FaFlag,
+  FaEnvelope
 } from 'react-icons/fa';
 import DateDisplay from '@/components/DateDisplay';
 import { format } from 'date-fns';
@@ -85,6 +86,17 @@ export default function BookingsManagement() {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [actionLoading, setActionLoading] = useState<string | null>(null);
+  const [toast, setToast] = useState<{ show: boolean; message: string; type: 'success' | 'error' } | null>(null);
+  
+  // Show toast notification
+  const showToast = (message: string, type: 'success' | 'error' = 'success') => {
+    setToast({ show: true, message, type });
+    
+    // Hide toast after 5 seconds
+    setTimeout(() => {
+      setToast(null);
+    }, 5000);
+  };
   
   // Fetch bookings from API
   const fetchBookings = async () => {
@@ -180,6 +192,31 @@ export default function BookingsManagement() {
               : booking
           )
         );
+        
+        // Show success toast with notification message
+        const booking = bookings.find(b => b.id === bookingId);
+        const travelerName = booking?.travelerName || 'the traveler';
+        
+        // Status-specific messages
+        let statusMessage;
+        switch(newStatus) {
+          case 'confirmed':
+            statusMessage = `Booking confirmed! ${travelerName} has been notified via email.`;
+            break;
+          case 'cancelled':
+            statusMessage = `Booking cancelled. ${travelerName} has been notified via email.`;
+            break; 
+          case 'completed':
+            statusMessage = `Booking marked as completed. ${travelerName} has been notified via email.`;
+            break;
+          case 'pending':
+            statusMessage = `Booking status updated to pending. ${travelerName} has been notified via email.`;
+            break;
+          default:
+            statusMessage = `Booking status updated. ${travelerName} has been notified via email.`;
+        }
+        
+        showToast(statusMessage);
         console.log(`Successfully updated booking ${bookingId} status to ${newStatus}`);
       } else {
         if (data.error === 'Invalid or expired token') {
@@ -191,6 +228,7 @@ export default function BookingsManagement() {
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An error occurred while updating the booking');
+      showToast(err instanceof Error ? err.message : 'An error occurred while updating the booking', 'error');
       console.error('Error updating booking status:', err);
     } finally {
       setActionLoading(null);
@@ -232,6 +270,34 @@ export default function BookingsManagement() {
   
   return (
     <div>
+      {/* Toast Notification */}
+      {toast && toast.show && (
+        <div 
+          className={`fixed top-4 right-4 z-50 flex items-center p-4 mb-4 rounded-md shadow-lg max-w-md ${
+            toast.type === 'success' ? 'bg-green-900 text-green-100' : 'bg-red-900 text-red-100'
+          }`}
+        >
+          <div className={`mr-3 ${toast.type === 'success' ? 'text-green-400' : 'text-red-400'}`}>
+            {toast.type === 'success' ? (
+              <FaCheckCircle className="text-xl" />
+            ) : (
+              <FaExclamationTriangle className="text-xl" />
+            )}
+          </div>
+          <div className="flex-1">
+            <p className="text-sm font-medium">
+              {toast.message}
+            </p>
+          </div>
+          <button 
+            onClick={() => setToast(null)}
+            className="ml-3 text-gray-300 hover:text-white"
+          >
+            <FaTimesCircle />
+          </button>
+        </div>
+      )}
+      
       <div className="flex flex-col sm:flex-row items-start justify-between mb-6">
         <div>
           <h1 className="text-2xl font-bold text-white">Bookings Management</h1>
@@ -444,6 +510,7 @@ export default function BookingsManagement() {
                                     className="w-full text-left px-3 py-2 text-sm text-green-400 hover:bg-gray-700 rounded-t-md flex items-center space-x-2"
                                     onClick={() => updateBookingStatus(booking.id, 'confirmed')}
                                     disabled={actionLoading === booking.id}
+                                    title="Confirm booking and send notification to traveler"
                                   >
                                     {actionLoading === booking.id ? 
                                       <FaSpinner className="animate-spin mr-2" /> : 
@@ -458,6 +525,7 @@ export default function BookingsManagement() {
                                     className="w-full text-left px-3 py-2 text-sm text-yellow-400 hover:bg-gray-700 flex items-center space-x-2"
                                     onClick={() => updateBookingStatus(booking.id, 'pending')}
                                     disabled={actionLoading === booking.id}
+                                    title="Mark as pending and notify traveler"
                                   >
                                     {actionLoading === booking.id ? 
                                       <FaSpinner className="animate-spin mr-2" /> : 
@@ -472,6 +540,7 @@ export default function BookingsManagement() {
                                     className="w-full text-left px-3 py-2 text-sm text-blue-400 hover:bg-gray-700 flex items-center space-x-2"
                                     onClick={() => updateBookingStatus(booking.id, 'completed')}
                                     disabled={actionLoading === booking.id}
+                                    title="Mark as completed and notify traveler"
                                   >
                                     {actionLoading === booking.id ? 
                                       <FaSpinner className="animate-spin mr-2" /> : 
@@ -486,6 +555,7 @@ export default function BookingsManagement() {
                                     className="w-full text-left px-3 py-2 text-sm text-red-400 hover:bg-gray-700 rounded-b-md flex items-center space-x-2"
                                     onClick={() => updateBookingStatus(booking.id, 'cancelled')}
                                     disabled={actionLoading === booking.id}
+                                    title="Cancel booking and notify traveler"
                                   >
                                     {actionLoading === booking.id ? 
                                       <FaSpinner className="animate-spin mr-2" /> : 
@@ -494,6 +564,10 @@ export default function BookingsManagement() {
                                     <span>Cancel</span>
                                   </button>
                                 )}
+                                
+                                <div className="w-full text-center text-xs text-gray-400 px-2 py-1 border-t border-gray-700 mt-1">
+                                  Email notifications will be sent to the traveler
+                                </div>
                               </div>
                             </div>
                             

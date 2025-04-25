@@ -1,8 +1,11 @@
 import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import jwt from 'jsonwebtoken';
-import connectDB from '@/utils/db';
+import connectDB from '@/lib/db';
 import Booking from '@/models/Booking';
+import User from '@/models/User';
+import { sendEmail, generateBookingStatusUpdateEmail } from '@/lib/email';
+import { format } from 'date-fns';
 
 export async function PATCH(request: Request, { params }: { params: { bookingId: string } }) {
   try {
@@ -35,7 +38,7 @@ export async function PATCH(request: Request, { params }: { params: { bookingId:
       }
 
       // Get the booking ID and new status from the request
-      const { bookingId } = params;
+      const bookingId = params.bookingId;
       const { status } = await request.json();
 
       // Validate the new status
@@ -50,15 +53,64 @@ export async function PATCH(request: Request, { params }: { params: { bookingId:
       const booking = await Booking.findOne({
         _id: bookingId,
         guideId: userId
-      });
+      }).exec();
 
       if (!booking) {
         return NextResponse.json({ success: false, message: 'Booking not found or not authorized' }, { status: 404 });
       }
 
+      // Capture previous status for comparison
+      const previousStatus = booking.status;
+      
       // Update the booking status
       booking.status = status;
       await booking.save();
+
+      // Send email notification if status changed
+      if (previousStatus !== status) {
+        try {
+          // Format date for email
+          const formattedDate = format(new Date(booking.date), 'MMMM d, yyyy');
+          const formattedTime = booking.time || '09:00 AM';
+          
+          // If status is confirmed, fetch guide contact details
+          let guideContact = null;
+          if (status === 'confirmed') {
+            const guide = await User.findById(userId).select('email phone').exec();
+            if (guide) {
+              guideContact = {
+                email: guide.email,
+                phone: guide.phone || 'Not provided'
+              };
+              console.log('Including guide contact details in confirmation email:', guideContact);
+            }
+          }
+          
+          // Generate email content
+          const emailHtml = generateBookingStatusUpdateEmail({
+            travelerName: booking.travelerName,
+            guideName: booking.guideName,
+            tourName: booking.tourName,
+            date: `${formattedDate} at ${formattedTime}`,
+            participants: booking.participants,
+            totalPrice: booking.totalPrice,
+            status: status,
+            guideContact: guideContact
+          });
+          
+          // Send email to traveler
+          await sendEmail({
+            to: booking.travelerEmail,
+            subject: `Your Tour Booking Status: ${status.charAt(0).toUpperCase() + status.slice(1)}`,
+            html: emailHtml
+          });
+          
+          console.log(`Booking status update email sent to ${booking.travelerEmail}`);
+        } catch (emailError) {
+          // Log email error but don't fail the request
+          console.error('Error sending booking status email:', emailError);
+        }
+      }
 
       return NextResponse.json({ 
         success: true, 
