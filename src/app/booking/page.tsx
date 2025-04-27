@@ -1,12 +1,14 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import DateDisplay from '@/components/DateDisplay';
+import { Suspense } from 'react'
 
-export default function Booking() {
+
+function Call() {
   const searchParams = useSearchParams();
   const tourId = searchParams.get('tourId');
   const guideId = searchParams.get('guideId');
@@ -28,7 +30,7 @@ export default function Booking() {
   const [agreeToTerms, setAgreeToTerms] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [bookingComplete, setBookingComplete] = useState(false);
-  const [errors, setErrors] = useState<{[key: string]: string}>({});
+  const [errors, setErrors] = useState<{ [key: string]: string }>({});
 
   // Mock tour data
   const tour = {
@@ -61,38 +63,38 @@ export default function Booking() {
   };
 
   const validateForm = () => {
-    const newErrors: {[key: string]: string} = {};
-    
+    const newErrors: { [key: string]: string } = {};
+
     if (!formData.firstName.trim()) newErrors.firstName = 'First name is required';
     if (!formData.lastName.trim()) newErrors.lastName = 'Last name is required';
     if (!formData.email.trim()) newErrors.email = 'Email is required';
     if (!/^\S+@\S+\.\S+$/.test(formData.email)) newErrors.email = 'Invalid email format';
     if (!formData.phone.trim()) newErrors.phone = 'Phone number is required';
-    
+
     if (formData.paymentMethod === 'creditCard') {
       if (!formData.cardNumber.trim()) newErrors.cardNumber = 'Card number is required';
       if (!formData.cardExpiry.trim()) newErrors.cardExpiry = 'Expiry date is required';
       if (!formData.cardCVC.trim()) newErrors.cardCVC = 'CVC is required';
     }
-    
+
     if (!agreeToTerms) newErrors.terms = 'You must agree to the terms and conditions';
-    
+
     return newErrors;
   };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     const formErrors = validateForm();
-    
+
     if (Object.keys(formErrors).length > 0) {
       setErrors(formErrors);
       return;
     }
-    
+
     setErrors({});
     setIsSubmitting(true);
-    
+
     // Simulate API call
     setTimeout(() => {
       setIsSubmitting(false);
@@ -135,7 +137,7 @@ export default function Booking() {
             <div className="md:col-span-1">
               <div className="bg-gray-800 rounded-lg shadow-lg overflow-hidden sticky top-24">
                 <div className="relative h-48">
-                  <Image 
+                  <Image
                     src={tour.image}
                     alt={tour.title}
                     fill
@@ -148,7 +150,7 @@ export default function Booking() {
                   <h2 className="text-xl font-bold mb-2">{tour.title}</h2>
                   <div className="flex items-center mb-4">
                     <div className="w-8 h-8 relative rounded-full overflow-hidden mr-2">
-                      <Image 
+                      <Image
                         src={tour.guide.image}
                         alt={tour.guide.name}
                         fill
@@ -165,7 +167,7 @@ export default function Booking() {
                       </div>
                     </div>
                   </div>
-                  
+
                   <div className="border-t border-gray-700 pt-4 mb-4">
                     <div className="flex justify-between mb-1">
                       <span className="text-gray-300">Date:</span>
@@ -184,14 +186,14 @@ export default function Booking() {
                       <span>${tour.price}</span>
                     </div>
                   </div>
-                  
+
                   <div className="border-t border-gray-700 pt-4 mb-4">
                     <div className="flex justify-between font-bold text-lg">
                       <span>Total:</span>
                       <span>${totalPrice}</span>
                     </div>
                   </div>
-                  
+
                   <Link href={`/guide-profile?id=${tour.guide.id}`}>
                     <div className="w-full block text-center px-4 py-2 border border-orange-500 text-orange-400 rounded-md hover:bg-orange-900 mt-4">
                       View Guide Profile
@@ -200,12 +202,12 @@ export default function Booking() {
                 </div>
               </div>
             </div>
-            
+
             {/* Booking Form */}
             <div className="md:col-span-2">
               <div className="bg-gray-800 rounded-lg shadow-lg p-6">
                 <h1 className="text-2xl font-bold mb-6">Complete Your Booking</h1>
-                
+
                 <form onSubmit={handleSubmit}>
                   <div className="mb-6">
                     <h3 className="text-lg font-semibold mb-4">Contact Information</h3>
@@ -260,7 +262,7 @@ export default function Booking() {
                       </div>
                     </div>
                   </div>
-                  
+
                   <div className="mb-6 border-t border-gray-700 pt-6">
                     <h3 className="text-lg font-semibold mb-4">Booking Details</h3>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -291,10 +293,10 @@ export default function Booking() {
                       ></textarea>
                     </div>
                   </div>
-                  
+
                   <div className="mb-6 border-t border-gray-700 pt-6">
                     <h3 className="text-lg font-semibold mb-4">Payment Method</h3>
-                    
+
                     <div className="space-y-4">
                       <div className="flex items-center">
                         <input
@@ -310,7 +312,7 @@ export default function Booking() {
                           Credit / Debit Card
                         </label>
                       </div>
-                      
+
                       <div className="flex items-center">
                         <input
                           type="radio"
@@ -327,7 +329,7 @@ export default function Booking() {
                       </div>
                     </div>
                   </div>
-                  
+
                   <div className="mb-6 border-t border-gray-700 pt-6">
                     <div className="flex items-center mt-6">
                       <input
@@ -342,18 +344,17 @@ export default function Booking() {
                       </label>
                     </div>
                   </div>
-                  
+
                   <div className="border-t border-gray-700 pt-6">
                     <button
                       type="submit"
                       disabled={isSubmitting}
-                      className={`w-full py-3 px-4 rounded-md text-white font-medium ${
-                        isSubmitting ? 'bg-orange-500 cursor-not-allowed' : 'bg-orange-600 hover:bg-orange-700'
-                      }`}
+                      className={`w-full py-3 px-4 rounded-md text-white font-medium ${isSubmitting ? 'bg-orange-500 cursor-not-allowed' : 'bg-orange-600 hover:bg-orange-700'
+                        }`}
                     >
                       {isSubmitting ? 'Processing...' : 'Complete Booking'}
                     </button>
-                    
+
                     <p className="mt-4 text-sm text-gray-400 text-center">
                       You won't be charged yet. We'll confirm availability with the guide first.
                     </p>
@@ -366,4 +367,13 @@ export default function Booking() {
       </div>
     </div>
   );
+}
+
+
+export default function Booking() {
+  return (
+    <Suspense>
+      <Call />
+    </Suspense>
+  )
 } 

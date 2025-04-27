@@ -1,4 +1,4 @@
-import { MongoClient, Db, Collection, ObjectId } from 'mongodb';
+import { MongoClient, Db, ObjectId } from 'mongodb';
 
 // Define collection schema types
 export interface UserDocument {
@@ -62,7 +62,7 @@ export interface TourDocument {
 export async function initializeCollections(db: Db): Promise<void> {
   const collections = await db.listCollections().toArray();
   const collectionNames = collections.map(c => c.name);
-  
+
   // Initialize Users collection if it doesn't exist
   if (!collectionNames.includes('users')) {
     console.log('Creating users collection...');
@@ -70,7 +70,7 @@ export async function initializeCollections(db: Db): Promise<void> {
     await db.collection('users').createIndex({ email: 1 }, { unique: true });
     console.log('Created users collection with email index');
   }
-  
+
   // Initialize Bookings collection if it doesn't exist
   if (!collectionNames.includes('bookings')) {
     console.log('Creating bookings collection...');
@@ -80,7 +80,7 @@ export async function initializeCollections(db: Db): Promise<void> {
     await db.collection('bookings').createIndex({ date: 1 });
     console.log('Created bookings collection with indexes');
   }
-  
+
   // Initialize Saved Guides collection if it doesn't exist
   if (!collectionNames.includes('saved_guides')) {
     console.log('Creating saved_guides collection...');
@@ -89,7 +89,7 @@ export async function initializeCollections(db: Db): Promise<void> {
     await db.collection('saved_guides').createIndex({ userId: 1, guideId: 1 }, { unique: true });
     console.log('Created saved_guides collection with indexes');
   }
-  
+
   // Initialize Tours collection if it doesn't exist
   if (!collectionNames.includes('tours')) {
     console.log('Creating tours collection...');
@@ -108,23 +108,23 @@ export async function connectToDatabase(): Promise<{ client: MongoClient, db: Db
   if (cachedClient) {
     return { client: cachedClient, db: cachedClient.db() };
   }
-  
+
   const MONGODB_URI = process.env.MONGODB_URI;
-  
+
   if (!MONGODB_URI) {
     throw new Error('MONGODB_URI environment variable is not defined');
   }
-  
+
   try {
     const client = new MongoClient(MONGODB_URI);
     await client.connect();
     cachedClient = client;
-    
+
     const db = client.db();
-    
+
     // Initialize collections on first connection
     await initializeCollections(db);
-    
+
     return { client, db };
   } catch (error) {
     console.error('Failed to connect to MongoDB:', error);
@@ -136,14 +136,14 @@ export async function connectToDatabase(): Promise<{ client: MongoClient, db: Db
 export async function createDemoDataIfEmpty(db: Db): Promise<void> {
   // Only add demo data if the collections are empty
   const usersCount = await db.collection('users').countDocuments();
-  
+
   if (usersCount === 0) {
     console.log('Creating demo user accounts...');
-    
+
     // Create a demo traveler
     const salt = await import('bcryptjs').then(bcrypt => bcrypt.genSalt(10));
     const hashPassword = await import('bcryptjs').then(bcrypt => bcrypt.hash('password123', salt));
-    
+
     await db.collection('users').insertMany([
       {
         name: 'Demo Traveler',
@@ -173,9 +173,9 @@ export async function createDemoDataIfEmpty(db: Db): Promise<void> {
         updatedAt: new Date()
       }
     ]);
-    
+
     console.log('Demo users created');
-    
+
     // We could add demo bookings, tours, etc. here as well
   }
 } 

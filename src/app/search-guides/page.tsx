@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
@@ -19,7 +19,7 @@ interface Guide {
   slug: string;
 }
 
-export default function SearchGuides() {
+function Call() {
   const searchParams = useSearchParams();
   const [location, setLocation] = useState('');
   const [date, setDate] = useState('');
@@ -392,4 +392,11 @@ export default function SearchGuides() {
       </div>
     </div>
   );
+}
+export default function SearchGuides() {
+  return (
+    <Suspense>
+      <Call />
+    </Suspense>
+  )
 }

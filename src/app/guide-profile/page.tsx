@@ -1,11 +1,11 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { Suspense, useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { FaSpinner } from 'react-icons/fa';
 
 // Map of guide IDs to slugs
-const guideIdToSlug: {[key: string]: string} = {
+const guideIdToSlug: { [key: string]: string } = {
   '1': 'maria-rodriguez',
   '2': 'sophia-chen',
   '3': 'hiroshi-tanaka',
@@ -17,13 +17,13 @@ const guideIdToSlug: {[key: string]: string} = {
   '9': 'emma-wilson'
 };
 
-export default function GuideProfileRedirect() {
+function Call() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const guideId = searchParams.get('id');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  
+
   useEffect(() => {
     if (!guideId) {
       // Redirect to search guides if no ID provided
@@ -31,16 +31,16 @@ export default function GuideProfileRedirect() {
       router.replace('/search-guides');
       return;
     }
-    
+
     const fetchGuideAndRedirect = async () => {
       try {
         setLoading(true);
         console.log(`Fetching guide with ID: ${guideId}`);
-        
+
         // Check if the ID is a MongoDB ObjectId (24 characters hex string)
         const isObjectId = /^[0-9a-fA-F]{24}$/.test(guideId);
         console.log(`Is ID a MongoDB ObjectId? ${isObjectId}`);
-        
+
         // Fetch guide from API by ID
         const response = await fetch(`/api/guides/profile?slug=${guideId}`, {
           method: 'GET',
@@ -50,14 +50,14 @@ export default function GuideProfileRedirect() {
             'Cache-Control': 'no-cache, no-store, must-revalidate'
           }
         });
-        
+
         console.log(`API response status: ${response.status}`);
-        
+
         if (!response.ok) {
           if (response.status === 404) {
             throw new Error('Guide not found');
           }
-          
+
           // Try to get error details from response
           let errorDetail = '';
           try {
@@ -66,17 +66,17 @@ export default function GuideProfileRedirect() {
           } catch (e) {
             errorDetail = response.statusText;
           }
-          
+
           throw new Error(`Failed to fetch guide: ${errorDetail}`);
         }
-        
+
         const data = await response.json();
         console.log(`Received data: success=${data.success}`);
-        
+
         if (data.success && data.guide) {
           // Add a short delay to ensure the guide data is processed by the database
           await new Promise(resolve => setTimeout(resolve, 500));
-          
+
           console.log(`Redirecting to guide profile: ${data.guide.slug}`);
           // Redirect to the guide profile using the slug
           router.replace(`/guides/${data.guide.slug}`);
@@ -91,10 +91,10 @@ export default function GuideProfileRedirect() {
         setLoading(false);
       }
     };
-    
+
     fetchGuideAndRedirect();
   }, [guideId, router]);
-  
+
   if (error) {
     return (
       <div className="min-h-screen bg-gray-900 text-white flex items-center justify-center">
@@ -102,13 +102,13 @@ export default function GuideProfileRedirect() {
           <h1 className="text-2xl font-bold text-red-400">Error</h1>
           <p className="text-gray-300 mt-4">{error}</p>
           <div className="mt-6 flex flex-col space-y-2">
-            <button 
+            <button
               onClick={() => router.push('/search-guides')}
               className="px-4 py-2 bg-orange-600 hover:bg-orange-700 rounded-md"
             >
               Return to Search
             </button>
-            <button 
+            <button
               onClick={() => window.location.reload()}
               className="px-4 py-2 bg-gray-700 hover:bg-gray-600 rounded-md"
             >
@@ -119,7 +119,7 @@ export default function GuideProfileRedirect() {
       </div>
     );
   }
-  
+
   return (
     <div className="min-h-screen bg-gray-900 text-white flex items-center justify-center">
       <div className="text-center">
@@ -129,4 +129,12 @@ export default function GuideProfileRedirect() {
       </div>
     </div>
   );
+}
+
+export default function GuideProfileRedirect() {
+  return (
+    <Suspense>
+      <Call />
+    </Suspense>
+  )
 } 
