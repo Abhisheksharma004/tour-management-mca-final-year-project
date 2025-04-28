@@ -2,8 +2,9 @@ import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { MongoClient, ObjectId } from 'mongodb';
 import jwt from 'jsonwebtoken';
-import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3';
+import { S3Client, PutObjectCommand, ObjectCannedACL } from '@aws-sdk/client-s3';
 import { v4 as uuidv4 } from 'uuid';
+import connectDB from '@/lib/db';
 
 // Initialize S3 client if credentials are available
 const s3Client = process.env.AWS_ACCESS_KEY_ID && process.env.AWS_SECRET_ACCESS_KEY
@@ -45,7 +46,7 @@ async function uploadImageToS3(base64Image: string, fileName: string) {
       Key: `tours/${uniqueFileName}`,
       Body: buffer,
       ContentType: base64Image.split(';')[0].split(':')[1] || 'image/jpeg',
-      ACL: 'public-read',
+      ACL: 'public-read' as ObjectCannedACL,
     };
 
     const command = new PutObjectCommand(params);
@@ -180,4 +181,4 @@ export async function POST(request: Request) {
       error: error instanceof Error ? error.message : 'Failed to create tour'
     }, { status: 500 });
   }
-} 
+}
